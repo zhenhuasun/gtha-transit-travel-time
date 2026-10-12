@@ -1,14 +1,14 @@
-# TTC Travel Time — Toronto
+# Greater Toronto and Hamilton Area (GTHA) Transit Travel Time
 
-Interactive travel-time map for **Toronto's subway and streetcars** (plus optional **bus**): pick a starting point and the whole city is colored by how long it takes to get there, from the TTC's official scheduled timetables. TTC only — no GO Transit.
+Interactive multi-modal transit travel-time map for GTHA: pick a starting point and the whole city is colored by how long it takes to get there.
 
-👉 **https://zhenhuasun.github.io/ttc-travel-time/**
+👉 **https://zhenhuasun.github.io/gtha-transit-travel-time/**
 
 ## Origin
 
-This is a fork of [camilleroux/montpellier-temps-transport](https://github.com/camilleroux/montpellier-temps-transport) by [Camille Roux](https://www.camilleroux.com/) — the concept and the engineering are his work. The original idea comes from Anthony Castrio's [NYC Transit Time Cartogram](https://castrio.me/nyc/), later adapted to Paris by Jules Grandin, then extended by Camille Roux to 27 French, Belgian and Canadian networks.
+This is a fork of [camilleroux/montpellier-temps-transport](https://github.com/camilleroux/montpellier-temps-transport) by [Camille Roux](https://www.camilleroux.com/) — the concept and the engineering are his work. The original idea comes from Anthony Castrio's [NYC Transit Time Cartogram](https://castrio.me/nyc/), later adapted to Paris by Jules Grandin, then extended by Camille Roux to 20+ networks.
 
-This fork borrows that idea and adds a Toronto context: TTC schedules, translated to English, reduced to a single city.
+This fork borrows that idea and adds a GTHA context.
 
 Features: heatmap and isochrones from a draggable start, click-to-destination with detailed itinerary (lines, transfers, walking), address search (Photon / OpenStreetMap) or station search, subway+streetcar or +bus, pan and zoom, share links.
 
