@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+${head}
+    <link rel="stylesheet" href="./styles.css?v=${styles_version}" />
+  </head>
+  <body>
+${header}
+
+    <main class="page">
+      <section class="hero">
+        <span class="chip">🚋 ${city_name}</span>
+        <h1>${city_title}</h1>
+        <p class="lede">
+          How long does it really take to cross ${city_name} by ${rail_noun}? Set a start point:
+          the whole city is colored by travel time, computed from the ${network} network's official schedules.
+        </p>
+        <p><a class="button primary" href="./${city_path}">Open the ${city_name} travel-time map →</a></p>
+      </section>
+
+      <section class="section" aria-labelledby="how-title">
+        <h2 id="how-title">How it works</h2>
+        <ol class="steps large">
+          <li><strong>1. Pick a start</strong> An address, a station, or your location: the map colors around it.</li>
+          <li><strong>2. Click a destination</strong> You get the duration and the itinerary: which line to take, transfers, walking.</li>
+          <li><strong>3. Compare</strong> The 15- and 30-minute curves show what is really close, by subway, tram, or bus.</li>
+        </ol>
+      </section>
+
+      <section class="section" aria-labelledby="faq-title">
+        <h2 id="faq-title">Frequently asked questions</h2>
+${faq_html}
+      </section>
+    </main>
+
+${footer}
+  </body>
+</html>

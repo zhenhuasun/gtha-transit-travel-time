@@ -1,0 +1,219 @@
+{
+  "city": "Toronto",
+  "builtAt": "2026-10-07T03:40:08+00:00",
+  "referenceDate": "2026-10-08",
+  "serviceWindow": "7:00–20:00",
+  "gtfs": {
+    "network": "TTC",
+    "dataset": "https://open.toronto.ca/dataset/ttc-routes-and-schedules",
+    "source": "https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/7795b45e-e65a-4465-81fc-c36b9dfff169/resource/cfb6b2b8-6191-41e3-bda1-b175c51148cb/download/TTC%20Routes%20and%20Schedules%20Data.zip",
+    "how": "download",
+    "fetchedAt": "2026-10-07T03:31:08+00:00",
+    "bytes": 36417654,
+    "sha256": "b4f78c1eb2181f0fdbf678f60a4b03c5dcebc79fbad9f821c17a2df5c0f0deb3",
+    "feedInfo": null,
+    "servicePeriod": [
+      "2026-09-30",
+      "2026-10-31"
+    ]
+  },
+  "communes": {
+    "metropole": "City of Toronto",
+    "source": "Overpass API: [out:json][timeout:110];(relation(324211););out geom;",
+    "how": "download",
+    "fetchedAt": "2026-10-07T03:31:10+00:00",
+    "bytes": 78257,
+    "sha256": "e2c121d2e72d9da55c19cb387e574916da8b1a0b80390274c54681940d3fba79"
+  },
+  "openStreetMap": {
+    "licence": "ODbL, © OpenStreetMap contributors",
+    "osm_water_parks": {
+      "source": "Overpass API: [out:json][timeout:180];(relation[\"natural\"=\"water\"](43.52,-79.72,43.92,-79.02);way[\"natural\"=\"water\"](43.52,-79.72,43.92,-79.02);relation[\"leisure\"=\"park\"](43.55,-79.55,43.75,-79.2);way[\"leisure\"=\"park\"](43.55,-79.55,43.75,-79.2););out geom;",
+      "how": "download",
+      "fetchedAt": "2026-10-07T03:31:23+00:00",
+      "bytes": 13204604,
+      "sha256": "ebe832a28a0c8e5cea69108667668d0311eb50eef932816b4fc02e0c538ae598"
+    }
+  },
+  "railGeometry": "GTFS shapes.txt",
+  "excludedRoutes": [],
+  "network": {
+    "lines": {
+      "metro": 3,
+      "bus": 209,
+      "tram": 19
+    },
+    "stops": 7533,
+    "railStations": 705
+  },
+  "stats": {
+    "lines": [
+      {
+        "name": "1",
+        "mode": "metro",
+        "color": "#D5C82B",
+        "stations": 76,
+        "headway": 3.1
+      },
+      {
+        "name": "2",
+        "mode": "metro",
+        "color": "#008000",
+        "stations": 62,
+        "headway": 2.8
+      },
+      {
+        "name": "4",
+        "mode": "metro",
+        "color": "#B300B3",
+        "stations": 10,
+        "headway": 5.5
+      },
+      {
+        "name": "5",
+        "mode": "tram",
+        "color": "#FF8000",
+        "stations": 48,
+        "headway": 4.7
+      },
+      {
+        "name": "6",
+        "mode": "tram",
+        "color": "#808080",
+        "stations": 34,
+        "headway": 7.0
+      },
+      {
+        "name": "301",
+        "mode": "tram",
+        "color": "#0054A6",
+        "stations": 134,
+        "headway": 10.0
+      },
+      {
+        "name": "304",
+        "mode": "tram",
+        "color": "#0054A6",
+        "stations": 75,
+        "headway": 10.0
+      },
+      {
+        "name": "305",
+        "mode": "tram",
+        "color": "#0054A6",
+        "stations": 47,
+        "headway": 10.0
+      },
+      {
+        "name": "306",
+        "mode": "tram",
+        "color": "#0054A6",
+        "stations": 101,
+        "headway": 10.0
+      },
+      {
+        "name": "310",
+        "mode": "tram",
+        "color": "#0054A6",
+        "stations": 30,
+        "headway": 10.0
+      },
+      {
+        "name": "312",
+        "mode": "tram",
+        "color": "#0054A6",
+        "stations": 30,
+        "headway": 10.0
+      },
+      {
+        "name": "501",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 82,
+        "headway": 10.0
+      },
+      {
+        "name": "503",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 52,
+        "headway": 7.3
+      },
+      {
+        "name": "504",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 78,
+        "headway": 9.0
+      },
+      {
+        "name": "505",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 48,
+        "headway": 6.1
+      },
+      {
+        "name": "506",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 101,
+        "headway": 10.0
+      },
+      {
+        "name": "507",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 49,
+        "headway": 7.4
+      },
+      {
+        "name": "508",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 55,
+        "headway": 30.0
+      },
+      {
+        "name": "509",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 21,
+        "headway": 9.1
+      },
+      {
+        "name": "510",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 31,
+        "headway": 6.0
+      },
+      {
+        "name": "511",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 22,
+        "headway": 6.2
+      },
+      {
+        "name": "512",
+        "mode": "tram",
+        "color": "#ED1C24",
+        "stations": 66,
+        "headway": 6.2
+      }
+    ],
+    "railStations": 705,
+    "busLines": 209,
+    "center": "Yonge-Dundas Square",
+    "within15": 10,
+    "within30": 36,
+    "farthestStation": "Long Branch Loop - Long Branch GO Station",
+    "farthestMinutes": 122,
+    "ogTrip": {
+      "name": "King St West at Bathurst St",
+      "lat": 43.64414,
+      "lon": -79.40189
+    }
+  }
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://zhenhuasun.github.io/ttc-travel-time/sitemap.xml
