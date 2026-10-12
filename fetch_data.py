@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import sys
 import time
@@ -64,6 +65,52 @@ def record(out: Path, name: str, source: str, how: str = "download") -> None:
         "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def split_bbox(values, n: int):
+    """Split a [south, west, north, east] bbox into n×n tiles (same format)."""
+    south, west, north, east = values
+    for i in range(n):
+        s = south + (north - south) * i / n
+        nn = south + (north - south) * (i + 1) / n
+        for j in range(n):
+            w = west + (east - west) * j / n
+            e = west + (east - west) * (j + 1) / n
+            yield [s, w, nn, e]
+
+
+def merge_overpass_elements(bodies: list[bytes]) -> dict:
+    """Merge Overpass JSON responses, deduped by (type, id).
+
+    `out geom` returns whole features even across tile borders, so a feature
+    found in several tiles dedupes exactly."""
+    elements, seen = [], set()
+    for body in bodies:
+        for element in json.loads(body).get("elements", []):
+            key = (element.get("type"), element.get("id"))
+            if key not in seen:
+                seen.add(key)
+                elements.append(element)
+    return {"elements": elements}
+
+
+def fetch_water_parks(city: dict, out: Path) -> None:
+    """Water and parks (OSM). Large bounding boxes are split into one Overpass query per tile
+    (each about the size that works untiled for a single city), then merged and deduped."""
+    print("Water and parks (OSM)…")
+    south, west, north, east = city["osmBbox"]
+    n = city.get("osmWaterTiles") or max(1, round(math.sqrt((north - south) * (east - west) / 0.3)))
+    tiles = list(split_bbox(city["osmBbox"], n))
+    bodies = []
+    for k, tile in enumerate(tiles, 1):
+        print(f"  water tile {k}/{len(tiles)}…")
+        query = f'[out:json][timeout:180];(relation["natural"="water"]({bbox(tile)});way["natural"="water"]({bbox(tile)}););out geom;'
+        bodies.append(overpass(query))
+    parks = bbox(city["parksBbox"])
+    query = f'[out:json][timeout:180];(relation["leisure"="park"]({parks});way["leisure"="park"]({parks}););out geom;'
+    bodies.append(overpass(query))
+    (out / "osm_water_parks.json").write_text(json.dumps(merge_overpass_elements(bodies)), encoding="utf-8")
+    record(out, "osm_water_parks.json", f"Overpass API: water in {len(tiles)} tiles + parks (deduped)")
 
 
 def fetch_context(city: dict, out: Path) -> None:
@@ -162,9 +209,16 @@ def main() -> None:
     print(f"Municipalities of {city['metropole']}…")
     if city.get("communesOsm"):
         # Outside France (no EPCI): the municipalities and boroughs are OSM administrative boundaries.
-        query = "[out:json][timeout:110];(" + "".join(f"relation({rel});" for rel in city["communesOsm"]) + ");out geom;"
-        (out / "communes_osm.json").write_bytes(overpass(query))
-        record(out, "communes_osm.json", f"Overpass API: {query}")
+        # Fetched in batches: one giant query times out for regions with dozens of relations.
+        ids, batch = city["communesOsm"], city.get("communesOsmBatch", 10)
+        bodies = []
+        for i in range(0, len(ids), batch):
+            chunk = ids[i:i + batch]
+            print(f"  relations {i + 1}-{i + len(chunk)}/{len(ids)}…")
+            query = "[out:json][timeout:110];(" + "".join(f"relation({rel});" for rel in chunk) + ");out geom;"
+            bodies.append(overpass(query))
+        (out / "communes_osm.json").write_text(json.dumps(merge_overpass_elements(bodies)), encoding="utf-8")
+        record(out, "communes_osm.json", f"Overpass API: {len(ids)} relations in batches of {batch} (deduped)")
     else:
         communes_url = f"https://geo.api.gouv.fr/epcis/{city['epci']}/communes?fields=nom,code&format=geojson&geometry=contour"
         (out / "communes.geojson").write_bytes(download(communes_url))
@@ -179,18 +233,7 @@ def main() -> None:
     if city.get("railGeometry") == "osm":
         fetch_rail(city, out)
 
-    print("Water and parks (OSM)…")
-    area, parks = bbox(city["osmBbox"]), bbox(city["parksBbox"])
-    query = (
-        "[out:json][timeout:180];("
-        f'relation["natural"="water"]({area});'
-        f'way["natural"="water"]({area});'
-        f'relation["leisure"="park"]({parks});'
-        f'way["leisure"="park"]({parks});'
-        ");out geom;"
-    )
-    (out / "osm_water_parks.json").write_bytes(overpass(query))
-    record(out, "osm_water_parks.json", f"Overpass API: {query}")
+    fetch_water_parks(city, out)
     fetch_rivers(city, out)
     fetch_context(city, out)
 
