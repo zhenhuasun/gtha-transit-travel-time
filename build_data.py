@@ -1181,8 +1181,9 @@ def main() -> None:
     communes, land = extract_communes(data_dir, city, complexes)
     arrondissements = extract_arrondissements(data_dir, city)
     bounds = multipolygon_bounds(land, LAND_PAD_METERS)
-    cols = round((bounds[2] - bounds[0]) / GRID_CELL_METERS)
-    rows = round((bounds[3] - bounds[1]) / GRID_CELL_METERS)
+    cell_meters = city.get("gridCellMeters", GRID_CELL_METERS)
+    cols = round((bounds[2] - bounds[0]) / cell_meters)
+    rows = round((bounds[3] - bounds[1]) / cell_meters)
     masked_water, water, parks = extract_water_and_parks(data_dir, bounds)
     context = extract_context(data_dir, city)
 

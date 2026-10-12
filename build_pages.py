@@ -32,6 +32,7 @@ LICENCES = {
     "mobilites": ("Licence Mobilités", "https://wiki.lafabriquedesmobilites.fr/wiki/Licence_Mobilit%C3%A9s"),
     "ccby": ("CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/deed.fr"),
     "togl": ("Open Government Licence – Toronto", "https://open.toronto.ca/open-data-licence/"),
+    "metrolinx": ("Metrolinx Open Data Licence", "https://www.metrolinx.com/en/about-us/open-data"),
 }
 GEO_CREDITS = {
     "ban": '<a href="https://geo.api.gouv.fr/">municipal boundaries</a>, address search via the\n'
