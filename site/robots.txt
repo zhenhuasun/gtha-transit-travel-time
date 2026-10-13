@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://zhenhuasun.github.io/ttc-travel-time/sitemap.xml
+Sitemap: https://zhenhuasun.github.io/gtha-transit-travel-time/sitemap.xml
