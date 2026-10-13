@@ -6,7 +6,7 @@ Interactive multi-modal transit travel-time map for the GTHA: pick a starting po
 
 ## Origin
 
-This is a fork of [camilleroux/montpellier-temps-transport](https://github.com/camilleroux/montpellier-temps-transport) by [Camille Roux](https://www.camilleroux.com/) — the concept and the engineering are his work. The original idea comes from Anthony Castrio's [NYC Transit Time Cartogram](https://castrio.me/nyc/), later adapted to Paris by Jules Grandin, then extended by Camille Roux to 20+ networks. This fork borrows that idea and adds a GTHA context: the full GO Transit rail + bus network, UP Express, and nine local transit agencies.
+The GTHA by Transit is done by Joshua Sun[Camille Roux]([https://www.camilleroux.com/](https://zhenhuasun.github.io/gtha-transit-travel-time/)) using the full GO Transit rail + bus network, UP Express, and multiple local transit agencies. This is a fork of [camilleroux/montpellier-temps-transport](https://github.com/camilleroux/montpellier-temps-transport) by [Camille Roux](https://www.camilleroux.com/) — the concept and the engineering are his work. The original idea comes from Anthony Castrio's [NYC Transit Time Cartogram](https://castrio.me/nyc/), later adapted to Paris by Jules Grandin, then extended by Camille Roux to 20+ networks.
 
 Features: heatmap and isochrones from a draggable start, click-to-destination with detailed itinerary (lines, transfers, walking), address search (Photon / OpenStreetMap) or station search, rail-only or +bus, pan and zoom, share links.
 
@@ -58,7 +58,7 @@ No real-time data or disruptions.
 
 ## Credits
 
-GTHA by Transit is based on the Montpellier Temps Transport project created by Camille Roux.
+GTHA by Transit is developed and maintained by Joshua Sun. The work is inspired by the Montpellier Temps Transport project created by Camille Roux.
 
 Original repository:
 https://github.com/camilleroux/montpellier-temps-transport
@@ -66,11 +66,8 @@ https://github.com/camilleroux/montpellier-temps-transport
 The GTHA adaptation includes:
 
 - GO Transit + UP Express GTFS integration
-- Nine local agency GTFS feeds merged into one network
+- Local agency GTFS feeds merged into one network
 - GTHA-wide boundary and 400 m computation grid
-- English localization
-
-Additional development and maintenance by Zhenhu Sun.
 
 ## Disclaimer
 This is an independent personal project created using publicly available open data. Views, analyses, and conclusions presented here are solely those of the author and do not represent the views of any employer, transportation agency, government organization, or affiliated institution.
