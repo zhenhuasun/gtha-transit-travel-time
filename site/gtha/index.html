@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Greater Toronto and Hamilton Area by transit · Travel times by GO train and local buses</title>
-    <meta name="description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
+    <title>Greater Toronto and Hamilton Area by transit · Travel Time Map</title>
+    <meta name="description" content="Transit travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there." />
     <link rel="canonical" href="https://zhenhuasun.github.io/gtha-transit-travel-time/gtha/" />
     <meta name="theme-color" content="#3aa70b" />
     <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
@@ -15,23 +15,23 @@
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content="GTHA by Transit" />
-    <meta property="og:title" content="Greater Toronto and Hamilton Area by transit" />
-    <meta property="og:description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
+    <meta property="og:title" content="Greater Toronto and Hamilton Area by Transit" />
+    <meta property="og:description" content="Transit travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there." />
     <meta property="og:url" content="https://zhenhuasun.github.io/gtha-transit-travel-time/gtha/" />
     <meta property="article:author" content="https://github.com/zhenhuasun" />
     <meta property="article:published_time" content="2026-10-12T08:00:00+02:00" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Greater Toronto and Hamilton Area by transit" />
-    <meta name="twitter:description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
+    <meta name="twitter:title" content="Greater Toronto and Hamilton Area by Transit" />
+    <meta name="twitter:description" content="Transit travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there." />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@graph": [
         {
           "@type": "WebApplication",
-          "name": "Greater Toronto and Hamilton Area by transit",
+          "name": "Greater Toronto and Hamilton Area by Transit",
           "url": "https://zhenhuasun.github.io/gtha-transit-travel-time/gtha/",
-          "description": "train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network).",
+          "description": "Transit travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there.",
           "inLanguage": "en",
           "applicationCategory": "TravelApplication",
           "operatingSystem": "Web",
@@ -72,15 +72,15 @@
           "mainEntity": [
             {
               "@type": "Question",
-              "name": "How long does it take to cross Greater Toronto and Hamilton Area by train?",
+              "name": "How long does it take to cross Greater Toronto and Hamilton Area by transit?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "From downtown (Union Station), 8% of train stations are within 15 minutes and 35% within 30 minutes, walking and waiting included. The farthest, Niagara Falls GO, is about 171 minutes away."
+                "text": "From downtown (Union Station), 8% of train, subway, streetcar and LRT stations are within 15 minutes and 35% within 30 minutes, walking and waiting included. The farthest, Niagara Falls GO, is about 171 minutes away."
               }
             },
             {
               "@type": "Question",
-              "name": "How frequent are the train lines in Greater Toronto and Hamilton Area?",
+              "name": "How frequent are the train, subway, streetcar and LRT lines in Greater Toronto and Hamilton Area?",
               "acceptedAnswer": {
                 "@type": "Answer",
                 "text": "On a weekday during the day, the average interval between two services is Line 1 Yonge-University: 3.1 min, Line 2 Bloor-Danforth: 2.8 min, Line 4 Sheppard: 5.5 min, Line 5 Eglinton: 4.7 min, Line 6 Finch West: 7 min, streetcar 301: 10 min, streetcar 304: 10 min, streetcar 305: 10 min, streetcar 306: 10 min, streetcar 310: 10 min, streetcar 312: 10 min, streetcar 501: 10 min, streetcar 503: 7.3 min, streetcar 504: 9 min, streetcar 505: 6.1 min, streetcar 506: 10 min, streetcar 507: 7.4 min, streetcar 508: 30 min, streetcar 509: 9.1 min, streetcar 510: 6 min, streetcar 511: 6.2 min, streetcar 512: 6.2 min. The most frequent line is Line 2 Bloor–Danforth, with a service about every 2.8 minutes."
@@ -91,7 +91,7 @@
               "name": "Where do the timetables used come from?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "From the scheduled timetables published by the GO Transit network (GTFS format, Metrolinx Open Data Licence), downloaded on October 13, 2026 and valid until December 27 2026. Travel times are for Tuesday 13 October 2026, between 7 a.m. and 8 p.m."
+                "text": "From the scheduled timetables published by the GO Transit and other municipal transit network (GTFS format), downloaded on October 13, 2026. Travel times are for October 13, 2026, between 7 a.m. and 8 p.m."
               }
             },
             {
@@ -99,7 +99,7 @@
               "name": "Are buses included in Greater Toronto and Hamilton Area?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes, optionally: check \"Bus\" under the map. By default, only train are shown. Waiting time at infrequent bus stops is capped at 15 minutes."
+                "text": "Yes, optionall. Waiting time at infrequent bus stops is capped at 15 minutes."
               }
             },
             {
@@ -107,7 +107,7 @@
               "name": "How are travel times calculated?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "For each trip: walk to the stop at 4.5 km/h, waiting time equal to half the interval between two services, scheduled time between stops, transfers with 1.5 minutes of walking, plus 1 minute to reach the subway platform. No real-time data or disruptions: this is the city \"on paper\"."
+                "text": "For each trip: walk to the stop at 4.5 km/h, waiting time equal to half the interval between two services, scheduled time between stops, transfers with 1.5 minutes of walking, plus 1 minute to reach the subway platform. No real-time data or disruptions."
               }
             },
             {
@@ -140,13 +140,13 @@
     <script id="city-config" type="application/json">{"slug": "gtha", "name": "Greater Toronto and Hamilton Area", "dataVersion": "601703e7", "defaultFrom": {"label": "Union Station", "lat": 43.6452, "lon": -79.3806}, "railNoun": "train", "railStations": "train stations", "busNoun": "bus", "geocoder": "photon", "searchBbox": [42.83, -81.36, 44.52, -78.06]}</script>
     <header class="topbar">
       <nav class="topbar-inner" aria-label="Main navigation">
-        <a class="brand" href="../"><img src="../favicon.svg" width="22" height="22" alt="" /> </a>
+        <a class="brand" href="../"><img src="../favicon.svg" width="22" height="22" alt="" /> GTHA by Transit</a>
       </nav>
     </header>
 
     <main class="page">
       <nav class="breadcrumb" aria-label="Breadcrumb">
-        <a href="../"></a> <span aria-hidden="true">›</span> <span aria-current="page">Greater Toronto and Hamilton Area</span>
+        <a href="../">GTHA by Transit</a> <span aria-hidden="true">›</span> <span aria-current="page">Greater Toronto and Hamilton Area</span>
       </nav>
 
       <section class="hero">
