@@ -20,7 +20,7 @@ const MODE_LABELS = {
   bhns: "BHNS",
   bus: "Bus",
 };
-const DEFAULT_MAX = 45;
+const DEFAULT_MAX = 60;
 const ISOCHRONE_OPTIONS = [15, 30, 45, 60];
 const DEFAULT_ISOCHRONES = [15, 30];
 const REACH_MINUTES = 30;
