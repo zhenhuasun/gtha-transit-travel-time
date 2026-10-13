@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Greater Toronto and Hamilton Area by transit · Travel times by GO train and local buses</title>
+    <meta name="description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
+    <link rel="canonical" href="https://zhenhuasun.github.io/ttc-travel-time/gtha/" />
+    <meta name="theme-color" content="#3aa70b" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="../favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+    <meta name="author" content="zhenhuasun" />
+    <link rel="author" href="https://github.com/zhenhuasun" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Within Tram Reach" />
+    <meta property="og:title" content="Greater Toronto and Hamilton Area by transit" />
+    <meta property="og:description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
+    <meta property="og:url" content="https://zhenhuasun.github.io/ttc-travel-time/gtha/" />
+    <meta property="article:author" content="https://github.com/zhenhuasun" />
+    <meta property="article:published_time" content="2026-10-12T08:00:00+02:00" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Greater Toronto and Hamilton Area by transit" />
+    <meta name="twitter:description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "name": "Greater Toronto and Hamilton Area by transit",
+          "url": "https://zhenhuasun.github.io/ttc-travel-time/gtha/",
+          "description": "train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network).",
+          "inLanguage": "en",
+          "applicationCategory": "TravelApplication",
+          "operatingSystem": "Web",
+          "isAccessibleForFree": true,
+          "author": {
+            "@id": "https://github.com/zhenhuasun#me"
+          },
+          "spatialCoverage": {
+            "@type": "Place",
+            "name": "Greater Toronto and Hamilton Area"
+          },
+          "isBasedOn": [
+            "https://castrio.me/nyc/",
+            "https://julesgrandin.github.io/paris-temps-transport/"
+          ],
+          "datePublished": "2026-10-12",
+          "dateModified": "2026-10-13"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Within Tram Reach",
+              "item": "https://zhenhuasun.github.io/ttc-travel-time/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Greater Toronto and Hamilton Area",
+              "item": "https://zhenhuasun.github.io/ttc-travel-time/gtha/"
+            }
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "How long does it take to cross Greater Toronto and Hamilton Area by train?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "From downtown (Union Station), 8% of train stations are within 15 minutes and 35% within 30 minutes, walking and waiting included. The farthest, Niagara Falls GO, is about 171 minutes away."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How frequent are the train lines in Greater Toronto and Hamilton Area?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "On a weekday during the day, the average interval between two services is subway 1: 3.1 min, subway 2: 2.8 min, subway 4: 5.5 min, subway BR: 30 min, subway KI: 30 min, subway LE: 24.2 min, subway LW: 28.9 min, subway MI: 30 min, subway RH: 30 min, subway ST: 30 min, subway UP: 15 min, tram 5: 4.7 min, tram 6: 7 min, tram 301: 10 min, tram 304: 10 min, tram 305: 10 min, tram 306: 10 min, tram 310: 10 min, tram 312: 10 min, tram 501: 10 min, tram 503: 7.3 min, tram 504: 9 min, tram 505: 6.1 min, tram 506: 10 min, tram 507: 7.4 min, tram 508: 30 min, tram 509: 9.1 min, tram 510: 6 min, tram 511: 6.2 min, tram 512: 6.2 min. The most frequent line is 2, with a service about every 2.8 minutes."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Where do the timetables used come from?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "From the scheduled timetables published by the GO Transit network (GTFS format, Metrolinx Open Data Licence), downloaded on 13 October 2026 and valid until 27 December 2026. Travel times are for Tuesday 13 October 2026, between 7 a.m. and 8 p.m."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Are buses included in Greater Toronto and Hamilton Area?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, optionally: check \"Bus\" under the map. By default, only train are shown. Waiting time at infrequent bus stops is capped at 15 minutes."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How are travel times calculated?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "For each trip: walk to the stop at 4.5 km/h, waiting time equal to half the interval between two services, scheduled time between stops, transfers with 1.5 minutes of walking, plus 1 minute to reach the subway platform. No real-time data or disruptions: this is the city \"on paper\"."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Who made this map of Greater Toronto and Hamilton Area?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "The idea comes from Anthony Castrio's NYC Transit Time Cartogram, later adapted to Paris by Jules Grandin (\"C'est encore loin ?\"), then extended by Camille Roux — the concept and engineering are his work. This Toronto edition is a fork by zhenhuasun, using TTC schedules. The code is open on GitHub."
+              }
+            }
+          ]
+        },
+        {
+          "@type": "Person",
+          "@id": "https://github.com/zhenhuasun#me",
+          "name": "zhenhuasun",
+          "url": "https://github.com/zhenhuasun",
+          "sameAs": [
+            "https://github.com/zhenhuasun"
+          ]
+        }
+      ]
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.bunny.net" />
+    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800" />
+    <link rel="stylesheet" href="../styles.css?v=b0171719" />
+  </head>
+  <body>
+    <script id="city-config" type="application/json">{"slug": "gtha", "name": "Greater Toronto and Hamilton Area", "dataVersion": "601703e7", "defaultFrom": {"label": "Union Station", "lat": 43.6452, "lon": -79.3806}, "railNoun": "train", "railStations": "train stations", "busNoun": "bus", "geocoder": "photon", "searchBbox": [42.83, -81.36, 44.52, -78.06]}</script>
+    <header class="topbar">
+      <nav class="topbar-inner" aria-label="Main navigation">
+        <a class="brand" href="../"><img src="../favicon.svg" width="22" height="22" alt="" /> Within Tram Reach</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="../">Within Tram Reach</a> <span aria-hidden="true">›</span> <span aria-current="page">Greater Toronto and Hamilton Area</span>
+      </nav>
+
+      <section class="hero">
+        <h1>Greater Toronto and Hamilton Area by&nbsp;transit</h1>
+        <p class="lede">
+          The city redrawn by how long it takes to get around by train. Pick a start point: the map is
+          colored by travel time to each point of the region.
+        </p>
+        <form id="searchForm" class="search" role="search" autocomplete="off">
+          <label class="visually-hidden" for="searchInput">Start address</label>
+          <input id="searchInput" type="search" placeholder="Start from an address… (e.g. Union Station)" />
+          <button type="submit" class="button primary">Start here</button>
+          <ul id="searchResults" class="search-results" hidden></ul>
+        </form>
+        <ol class="steps" aria-label="How to use">
+          <li><strong>1. Start</strong> Search for an address or drag the green point.</li>
+          <li><strong>2. Destination</strong> Click anywhere: duration and detailed itinerary.</li>
+          <li><strong>3. Reading the map</strong> Green = close, red = far. Black lines: 15 and 30 min.</li>
+        </ol>
+      </section>
+
+      <section class="map-card" aria-label="Travel-time map">
+        <noscript>
+          <p class="noscript">
+            This interactive map needs JavaScript to compute travel times. Enable it to use the map.
+          </p>
+        </noscript>
+        <div id="mapStage" class="map-stage">
+          <canvas id="mapCanvas"></canvas>
+
+          <aside id="tripPanel" class="trip-panel" aria-live="polite">
+            <p class="trip-eyebrow">Start</p>
+            <p id="tripFrom" class="trip-from">Loading the network…</p>
+            <div id="tripResult" class="trip-result" hidden>
+              <div class="trip-row">
+                <p class="trip-eyebrow">Destination</p>
+                <button id="removeTo" type="button" class="link-button">Remove</button>
+              </div>
+              <p id="tripTo" class="trip-to"></p>
+              <p id="tripDuration" class="trip-duration"></p>
+              <ol id="tripSteps" class="trip-steps"></ol>
+              <div id="heatFrom" class="segmented" role="group" aria-label="Map origin point">
+                <span>Map from</span>
+                <button type="button" data-source="from" aria-pressed="true">the start</button>
+                <button type="button" data-source="to" aria-pressed="false">the destination</button>
+              </div>
+            </div>
+            <p id="tripHint" class="trip-hint">Click the map to place a destination.</p>
+          </aside>
+
+          <div class="map-buttons">
+            <button id="zoomIn" type="button" class="icon-button" aria-label="Zoom in">+</button>
+            <button id="zoomOut" type="button" class="icon-button" aria-label="Zoom out">−</button>
+            <button id="recenter" type="button" class="icon-button" aria-label="Recenter the map">⌖</button>
+            <button id="fullscreen" type="button" class="icon-button" aria-label="Fullscreen">⤢</button>
+          </div>
+
+          <div class="legend" aria-hidden="true">
+            <div id="legendBar" class="legend-bar"></div>
+            <div class="legend-labels"><span>0</span><span id="legendMid"></span><span id="legendMax"></span></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-label">Network</span>
+            <label class="pill-toggle"><input type="checkbox" checked disabled /> Train</label>
+            <label class="pill-toggle"><input id="busToggle" type="checkbox" /> Bus</label>
+          </div>
+          <div id="isoToggles" class="control-group">
+            <span class="control-label">Isochrones</span>
+            <label class="pill-toggle"><input type="checkbox" value="15" checked /> 15 min</label>
+            <label class="pill-toggle"><input type="checkbox" value="30" checked /> 30 min</label>
+            <label class="pill-toggle"><input type="checkbox" value="45" /> 45 min</label>
+            <label class="pill-toggle"><input type="checkbox" value="60" /> 60 min</label>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="maxRange">Scale</label>
+            <input id="maxRange" type="range" min="20" max="90" step="5" value="45" />
+            <output id="maxValue" for="maxRange">45 min</output>
+          </div>
+          <div class="control-group actions">
+            <button id="locate" type="button" class="button">My location</button>
+            <button id="swap" type="button" class="button">Swap</button>
+            <button id="share" type="button" class="button primary">Share</button>
+          </div>
+        </div>
+        <p id="reach" class="reach"></p>
+      </section>
+
+      <section class="section" aria-labelledby="stats-title">
+        <h2 id="stats-title">Greater Toronto and Hamilton Area in numbers</h2>
+        <div class="stat-grid">
+          <div class="stat"><strong>35%</strong><span>of train stations within 30 min of downtown (Union Station)</span></div>
+          <div class="stat"><strong>781</strong><span>train stations</span></div>
+          <div class="stat"><strong>2.8 min</strong><span>between services on line 2, the most frequent</span></div>
+          <div class="stat"><strong>171 min</strong><span>from downtown to Niagara Falls GO, the farthest station</span></div>
+        </div>
+        <table class="lines-table">
+          <caption>Weekday train lines of the GO Transit network</caption>
+          <thead><tr><th scope="col">Line</th><th scope="col">Stations</th><th scope="col">One every</th></tr></thead>
+          <tbody>
+            <tr><td><span class="line-badge" style="background:#D5C82B;color:#111">1</span> Subway</td><td>76</td><td>~3.1 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#008000;color:#fff">2</span> Subway</td><td>62</td><td>~2.8 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#B300B3;color:#fff">4</span> Subway</td><td>10</td><td>~5.5 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#003767;color:#fff">BR</span> Subway</td><td>11</td><td>~30 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#00853e;color:#fff">KI</span> Subway</td><td>14</td><td>~30 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ff0d00;color:#fff">LE</span> Subway</td><td>10</td><td>~24.2 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#98002e;color:#fff">LW</span> Subway</td><td>16</td><td>~28.9 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#f57f25;color:#111">MI</span> Subway</td><td>9</td><td>~30 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0099c7;color:#fff">RH</span> Subway</td><td>7</td><td>~30 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#794500;color:#fff">ST</span> Subway</td><td>10</td><td>~30 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0075D2;color:#fff">UP</span> Subway</td><td>5</td><td>~15 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#FF8000;color:#111">5</span> Tram</td><td>48</td><td>~4.7 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#808080;color:#fff">6</span> Tram</td><td>34</td><td>~7 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0054A6;color:#fff">301</span> Tram</td><td>134</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0054A6;color:#fff">304</span> Tram</td><td>75</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0054A6;color:#fff">305</span> Tram</td><td>47</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0054A6;color:#fff">306</span> Tram</td><td>101</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0054A6;color:#fff">310</span> Tram</td><td>30</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#0054A6;color:#fff">312</span> Tram</td><td>30</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">501</span> Tram</td><td>82</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">503</span> Tram</td><td>52</td><td>~7.3 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">504</span> Tram</td><td>78</td><td>~9 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">505</span> Tram</td><td>48</td><td>~6.1 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">506</span> Tram</td><td>101</td><td>~10 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">507</span> Tram</td><td>49</td><td>~7.4 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">508</span> Tram</td><td>55</td><td>~30 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">509</span> Tram</td><td>21</td><td>~9.1 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">510</span> Tram</td><td>31</td><td>~6 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">511</span> Tram</td><td>22</td><td>~6.2 min</td></tr>
+            <tr><td><span class="line-badge" style="background:#ED1C24;color:#fff">512</span> Tram</td><td>66</td><td>~6.2 min</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" aria-labelledby="faq-title">
+        <h2 id="faq-title">Frequently asked questions</h2>
+        <details class="faq"><summary>How long does it take to cross Greater Toronto and Hamilton Area by train?</summary><p>From downtown (Union Station), 8% of train stations are within 15 minutes and 35% within 30 minutes, walking and waiting included. The farthest, Niagara Falls GO, is about 171 minutes away.</p></details>
+        <details class="faq"><summary>How frequent are the train lines in Greater Toronto and Hamilton Area?</summary><p>On a weekday during the day, the average interval between two services is subway 1: 3.1 min, subway 2: 2.8 min, subway 4: 5.5 min, subway BR: 30 min, subway KI: 30 min, subway LE: 24.2 min, subway LW: 28.9 min, subway MI: 30 min, subway RH: 30 min, subway ST: 30 min, subway UP: 15 min, tram 5: 4.7 min, tram 6: 7 min, tram 301: 10 min, tram 304: 10 min, tram 305: 10 min, tram 306: 10 min, tram 310: 10 min, tram 312: 10 min, tram 501: 10 min, tram 503: 7.3 min, tram 504: 9 min, tram 505: 6.1 min, tram 506: 10 min, tram 507: 7.4 min, tram 508: 30 min, tram 509: 9.1 min, tram 510: 6 min, tram 511: 6.2 min, tram 512: 6.2 min. The most frequent line is 2, with a service about every 2.8 minutes.</p></details>
+        <details class="faq"><summary>Where do the timetables used come from?</summary><p>From the scheduled timetables published by the GO Transit network (GTFS format, Metrolinx Open Data Licence), downloaded on 13 October 2026 and valid until 27 December 2026. Travel times are for Tuesday 13 October 2026, between 7 a.m. and 8 p.m.</p></details>
+        <details class="faq"><summary>Are buses included in Greater Toronto and Hamilton Area?</summary><p>Yes, optionally: check &quot;Bus&quot; under the map. By default, only train are shown. Waiting time at infrequent bus stops is capped at 15 minutes.</p></details>
+        <details class="faq"><summary>How are travel times calculated?</summary><p>For each trip: walk to the stop at 4.5 km/h, waiting time equal to half the interval between two services, scheduled time between stops, transfers with 1.5 minutes of walking, plus 1 minute to reach the subway platform. No real-time data or disruptions: this is the city &quot;on paper&quot;.</p></details>
+        <details class="faq"><summary>Who made this map of Greater Toronto and Hamilton Area?</summary><p>The idea comes from <a href="https://castrio.me/nyc/">NYC Transit Time Cartogram</a> by Anthony Castrio, later adapted to Paris by Jules Grandin (<a href="https://julesgrandin.github.io/paris-temps-transport/">C'est encore loin&nbsp;?</a>), then extended by <a href="https://github.com/camilleroux/montpellier-temps-transport">Camille Roux</a> — the concept and engineering are his work. This Toronto edition is a fork by <a href="https://github.com/zhenhuasun">zhenhuasun</a>, using TTC schedules. The code is open on <a href="https://github.com/zhenhuasun/ttc-travel-time">GitHub</a>.</p></details>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <p class="footer-author">
+          Forked from <a href="https://github.com/camilleroux/montpellier-temps-transport">montpellier-temps-transport</a>
+          by Camille Roux — the concept and engineering are his work, based on the idea by Anthony Castrio and
+          Jules Grandin. This Toronto edition is published by <a href="https://github.com/zhenhuasun" rel="author">zhenhuasun</a>.
+        </p>
+        <p class="footer-links">
+          <a href="https://github.com/zhenhuasun/ttc-travel-time" rel="noopener">Source code on GitHub</a> ·
+          <a href="https://github.com/zhenhuasun/ttc-travel-time/issues" rel="noopener">Report an error</a> ·
+          <a href="../mentions-legales/">Legal notice and licenses</a>
+        </p>
+        <p class="footer-credits">
+          Original idea: Anthony Castrio's <a href="https://castrio.me/nyc/">NYC Transit Time Cartogram</a>,
+          later adapted to Paris by Jules Grandin
+          (<a href="https://julesgrandin.github.io/paris-temps-transport/">C'est encore loin&nbsp;?</a>).
+          Timetables: <a href="https://www.metrolinx.com/en/about-us/open-data">GTFS GO Transit</a> and <a href="https://www.metrolinx.com/en/about-us/open-data">GTFS UP Express</a> and <a href="https://open.toronto.ca/dataset/ttc-routes-and-schedules/">GTFS TTC</a> and <a href="https://www.mississauga.ca/miway">GTFS MiWay</a> and <a href="https://www.yrt.ca/en/about-us/open-data.aspx">GTFS York Region Transit</a> and <a href="https://www.arcgis.com/home/item.html?id=a355aabd5a8c490186bdce559c9c75fb">GTFS Brampton Transit</a> and <a href="https://opendata.durham.ca/">GTFS Durham Region Transit</a> and <a href="https://www.arcgis.com/home/item.html?id=d78a1c1ad6a940009de8b68839a8f606">GTFS Oakville Transit</a> and <a href="https://opendata.burlington.ca/">GTFS Burlington Transit</a> and <a href="https://open.hamilton.ca/">GTFS Hamilton Street Railway</a> and <a href="https://www.grt.ca/">GTFS Grand River Transit</a> (Greater Toronto and Hamilton Area). Basemap © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>,
+          OpenStreetMap administrative boundaries, address search via
+          <a href="https://photon.komoot.io/">Photon</a> (komoot, OpenStreetMap data).
+          Computed data published under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a> license, code under the MIT license.
+        </p>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script type="module" src="../app.js?v=04420849"></script>
+  </body>
+</html>
