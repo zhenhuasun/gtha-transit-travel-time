@@ -38,6 +38,8 @@ def with_defaults(raw: dict) -> dict:
     city.setdefault("titleSuffix", f"Travel times by {city['railNoun']} — {city['network']}")
     city.setdefault("busNoun", "bus")
     city.setdefault("busLabel", "Bus")
+    city.setdefault("defaultBus", False)
+    city.setdefault("defaultMaxMinutes", 45)
     city.setdefault("area", "of the metro area" if "métropole" in city["metropole"].lower() else "of the urban area")
     city.setdefault("railGeometry", "gtfs")
     # Outside France (`country`), no Base Adresse Nationale: addresses are looked up in OSM through Photon.

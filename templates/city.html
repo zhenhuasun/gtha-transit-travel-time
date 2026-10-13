@@ -78,7 +78,7 @@ ${original_map}        <form id="searchForm" class="search" role="search" autoco
           <div class="control-group">
             <span class="control-label">Network</span>
             <label class="pill-toggle"><input type="checkbox" checked disabled /> ${rail_label}</label>
-            <label class="pill-toggle"><input id="busToggle" type="checkbox" /> ${bus_label}</label>
+            <label class="pill-toggle"><input id="busToggle" type="checkbox"${bus_checked} /> ${bus_label}</label>
           </div>
           <div id="isoToggles" class="control-group">
             <span class="control-label">Isochrones</span>
@@ -89,8 +89,8 @@ ${original_map}        <form id="searchForm" class="search" role="search" autoco
           </div>
           <div class="control-group">
             <label class="control-label" for="maxRange">Scale</label>
-            <input id="maxRange" type="range" min="20" max="90" step="5" value="45" />
-            <output id="maxValue" for="maxRange">45 min</output>
+            <input id="maxRange" type="range" min="20" max="90" step="5" value="${max_value}" />
+            <output id="maxValue" for="maxRange">${max_value} min</output>
           </div>
           <div class="control-group actions">
             <button id="locate" type="button" class="button">My location</button>

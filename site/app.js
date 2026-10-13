@@ -73,8 +73,8 @@ const app = {
   size: { width: 0, height: 0, dpr: 1 },
   from: null, // { point, label }
   to: null, // { point, label }
-  includeBus: false,
-  maxMinutes: DEFAULT_MAX,
+  includeBus: CITY.defaultBus ?? false,
+  maxMinutes: CITY.defaultMaxMinutes ?? DEFAULT_MAX,
   isochrones: [...DEFAULT_ISOCHRONES],
   heatFrom: "from", // the heat map starts from the start or the destination
   solution: null, // shortest paths from the start (panel, itinerary)
@@ -1065,8 +1065,10 @@ function syncUrl() {
   if (app.from) params.set("from", formatPair(app.from.point));
   if (app.to) params.set("to", formatPair(app.to.point));
   if (app.to && app.heatFrom === "to") params.set("carte", "arrivee");
-  if (app.includeBus) params.set("bus", "1");
-  if (app.maxMinutes !== DEFAULT_MAX) params.set("max", String(app.maxMinutes));
+  const defBus = CITY.defaultBus ?? false;
+  if (app.includeBus !== defBus) params.set("bus", app.includeBus ? "1" : "0");
+  const defMax = CITY.defaultMaxMinutes ?? DEFAULT_MAX;
+  if (app.maxMinutes !== defMax) params.set("max", String(app.maxMinutes));
   const iso = [...app.isochrones].sort((a, b) => a - b).join(",");
   if (iso !== DEFAULT_ISOCHRONES.join(",")) params.set("iso", iso || "0");
   const query = params.toString().replaceAll("%2C", ",");
@@ -1075,10 +1077,12 @@ function syncUrl() {
 
 function restoreFromUrl() {
   const params = new URLSearchParams(location.search);
-  app.includeBus = params.get("bus") === "1";
+  const defBus = CITY.defaultBus ?? false;
+  app.includeBus = params.has("bus") ? params.get("bus") === "1" : defBus;
   $("busToggle").checked = app.includeBus;
+  const defMax = CITY.defaultMaxMinutes ?? DEFAULT_MAX;
   const max = Number(params.get("max"));
-  if (max >= 20 && max <= 90) app.maxMinutes = max;
+  app.maxMinutes = max >= 20 && max <= 90 ? max : defMax;
   $("maxRange").value = String(app.maxMinutes);
   if (params.has("iso")) {
     app.isochrones = params
