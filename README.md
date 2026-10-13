@@ -6,9 +6,7 @@ Interactive multi-modal transit travel-time map for GTHA: pick a starting point 
 
 ## Origin
 
-This is a fork of [camilleroux/montpellier-temps-transport](https://github.com/camilleroux/montpellier-temps-transport) by [Camille Roux](https://www.camilleroux.com/) — the concept and the engineering are his work. The original idea comes from Anthony Castrio's [NYC Transit Time Cartogram](https://castrio.me/nyc/), later adapted to Paris by Jules Grandin, then extended by Camille Roux to 20+ networks.
-
-This fork borrows that idea and adds a GTHA context.
+This is a fork of [camilleroux/montpellier-temps-transport](https://github.com/camilleroux/montpellier-temps-transport) by [Camille Roux](https://www.camilleroux.com/) — the concept and the engineering are his work. The original idea comes from Anthony Castrio's [NYC Transit Time Cartogram](https://castrio.me/nyc/), later adapted to Paris by Jules Grandin, then extended by Camille Roux to 20+ networks. This fork borrows that idea and adds a GTHA context.
 
 Features: heatmap and isochrones from a draggable start, click-to-destination with detailed itinerary (lines, transfers, walking), address search (Photon / OpenStreetMap) or station search, subway+streetcar or +bus, pan and zoom, share links.
 
@@ -64,7 +62,6 @@ The Toronto adaptation includes:
 - Toronto-specific travel-time datasets
 - English localization
 - Toronto-focused branding and visual design
-- GitHub Pages deployment
 
 Additional development and maintenance by Zhenhu Sun.
 
