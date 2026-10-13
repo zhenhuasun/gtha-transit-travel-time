@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="site/favicon.svg" width="120" alt="Transit travel-time isochrones">
+</p>
+
 # Greater Toronto and Hamilton Area (GTHA) Transit Travel Time
 
 Interactive multi-modal transit travel-time map for the GTHA: pick a starting point and the whole region is colored by how long it takes to get there by transit.
