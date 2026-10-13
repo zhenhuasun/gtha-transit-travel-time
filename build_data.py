@@ -523,8 +523,9 @@ GTFS_ID_COLUMNS = {"route_id", "agency_id", "trip_id", "service_id", "stop_id", 
 
 
 def gtfs_path(data_dir: Path, city: dict) -> Path:
-    """The city's GTFS. With extra feeds, a gtfs_merged.zip (rebuilt when a source changes): the main feed copied as
-    is, then the rows of each extra feed, in the main feed's columns."""
+    """The city's GTFS. With extra feeds, a gtfs_merged.zip (rebuilt when a source changes): every table carried
+    by any feed is merged — the main feed's bytes go in as is, then each extra feed's rows, slug-prefixed
+    so identifiers cannot collide, in the header's columns."""
     extras = city.get("gtfsExtra", [])
     if not extras:
         return data_dir / "gtfs.zip"
@@ -542,22 +543,32 @@ def gtfs_path(data_dir: Path, city: dict) -> Path:
     print(f"Merging GTFS ({', '.join(source.name for source in sources)})…")
     archives = [zipfile.ZipFile(source) for source in sources]
     main, others = archives[0], [(extra, archive) for (extra, _), archive in zip(available, archives[1:])]
+    # A table is merged when ANY feed carries it (the main feed may lack calendar.txt, as GO does):
+    # the main feed's bytes go in unprefixed, every extra feed's rows are slug-prefixed.
+    tables = list(dict.fromkeys([*main.namelist(), *(name for _, archive in others for name in archive.namelist())]))
     with zipfile.ZipFile(merged, "w", zipfile.ZIP_DEFLATED) as out:
-        for name in main.namelist():
-            with main.open(name) as source, out.open(name, "w", force_zip64=True) as target:
+        for name in tables:
+            base = main if name in main.namelist() else next(archive for _, archive in others if name in archive.namelist())
+            with out.open(name, "w", force_zip64=True) as target:
                 last = b"\n"
-                while chunk := source.read(1 << 20):
-                    target.write(chunk)
-                    last = chunk[-1:]
+                if name in main.namelist():
+                    with base.open(name) as source:
+                        while chunk := source.read(1 << 20):
+                            target.write(chunk)
+                            last = chunk[-1:]
+                    if last != b"\n":
+                        target.write(b"\n")
                 if name not in MERGED_TABLES:
                     continue
-                if last != b"\n":
-                    target.write(b"\n")
-                with main.open(name) as header_source:
+                with base.open(name) as header_source:
                     header = next(csv.reader(io.TextIOWrapper(header_source, encoding="utf-8-sig")))
                 text = io.TextIOWrapper(target, encoding="utf-8", newline="")
                 writer = csv.writer(text, lineterminator="\n")
+                if name not in main.namelist():
+                    writer.writerow(header)  # no main feed to copy the header from
                 for extra, archive in others:
+                    if name not in archive.namelist():
+                        continue
                     for row in read_gtfs_table(archive, name):
                         writer.writerow(
                             f"{extra['slug']}:{row[column]}" if column in GTFS_ID_COLUMNS and row.get(column) else row.get(column, "")
