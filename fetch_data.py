@@ -197,12 +197,21 @@ def main() -> None:
     else:
         (out / "gtfs.zip").write_bytes(download(city["gtfsUrl"]))
         record(out, "gtfs.zip", city["gtfsUrl"])
+    failures = []
     for extra in city.get("gtfsExtra", []):
         # Lines published in a feed of their own (the REM in Montréal), merged by build_data.py.
+        # One dead feed must not kill the whole fetch: it is skipped with a warning.
         print(f"GTFS {extra['network']}…")
         name = f"gtfs_{extra['slug']}.zip"
-        (out / name).write_bytes(download(extra["url"]))
+        try:
+            (out / name).write_bytes(download(extra["url"]))
+        except Exception as error:  # noqa: BLE001 - e.g. host unreachable
+            print(f"  FAILED ({error}); continuing without {extra['network']}")
+            failures.append(extra["network"])
+            continue
         record(out, name, extra["url"])
+    if failures:
+        print(f"WARNING: {len(failures)} GTFS feed(s) skipped: {', '.join(failures)}")
     if "--gtfs-only" in sys.argv:
         return
 

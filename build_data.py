@@ -528,13 +528,20 @@ def gtfs_path(data_dir: Path, city: dict) -> Path:
     extras = city.get("gtfsExtra", [])
     if not extras:
         return data_dir / "gtfs.zip"
-    sources = [data_dir / "gtfs.zip", *(data_dir / f"gtfs_{extra['slug']}.zip" for extra in extras)]
+    available = []
+    for extra in extras:
+        path = data_dir / f"gtfs_{extra['slug']}.zip"
+        if path.exists():
+            available.append((extra, path))
+        else:
+            print(f"GTFS {extra['network']}: {path.name} missing (download failed?) — building without it")
+    sources = [data_dir / "gtfs.zip", *(path for _, path in available)]
     merged = data_dir / "gtfs_merged.zip"
     if merged.exists() and all(merged.stat().st_mtime >= source.stat().st_mtime for source in sources):
         return merged
     print(f"Merging GTFS ({', '.join(source.name for source in sources)})…")
     archives = [zipfile.ZipFile(source) for source in sources]
-    main, others = archives[0], list(zip(extras, archives[1:]))
+    main, others = archives[0], [(extra, archive) for (extra, _), archive in zip(available, archives[1:])]
     with zipfile.ZipFile(merged, "w", zipfile.ZIP_DEFLATED) as out:
         for name in main.namelist():
             with main.open(name) as source, out.open(name, "w", force_zip64=True) as target:
