@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Toronto by Transit · Travel Time Map</title>
-    <meta name="description" content="Transit travel-time map of Toronto: pick a starting point and the whole city is colored by how long it takes to get there (TTC network)." />
+    <title>Within Tram Reach · Greater Toronto and Hamilton Area by transit</title>
+    <meta name="description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
     <link rel="canonical" href="https://zhenhuasun.github.io/ttc-travel-time/" />
     <meta name="theme-color" content="#3aa70b" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -14,15 +14,15 @@
     <link rel="author" href="https://github.com/zhenhuasun" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:site_name" content="Toronto by Transit" />
-    <meta property="og:title" content="Toronto by Transit" />
-    <meta property="og:description" content="Transit travel-time map of Toronto: pick a starting point and the whole city is colored by how long it takes to get there (TTC network)." />
+    <meta property="og:site_name" content="Within Tram Reach" />
+    <meta property="og:title" content="Within Tram Reach" />
+    <meta property="og:description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
     <meta property="og:url" content="https://zhenhuasun.github.io/ttc-travel-time/" />
     <meta property="article:author" content="https://github.com/zhenhuasun" />
-    <meta property="article:published_time" content="2026-10-07T08:00:00+02:00" />
+    <meta property="article:published_time" content="2026-10-12T08:00:00+02:00" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Toronto by Transit" />
-    <meta name="twitter:description" content="Transit travel-time map of Toronto: pick a starting point and the whole city is colored by how long it takes to get there (TTC network)." />
+    <meta name="twitter:title" content="Within Tram Reach" />
+    <meta name="twitter:description" content="train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network)." />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -30,9 +30,9 @@
         {
           "@type": "WebSite",
           "@id": "https://zhenhuasun.github.io/ttc-travel-time/#site",
-          "name": "Toronto by Transit",
+          "name": "Within Tram Reach",
           "url": "https://zhenhuasun.github.io/ttc-travel-time/",
-          "description": "Explore Toronto through travel time, not distance. Choose any starting point and discover which neighbourhoods are within reach by TTC transit.",
+          "description": "train travel-time map of Greater Toronto and Hamilton Area: pick a starting point and the whole city is colored by how long it takes to get there (GO Transit network).",
           "inLanguage": "en",
           "author": {
             "@id": "https://github.com/zhenhuasun#me"
@@ -46,7 +46,7 @@
               "name": "Where do the travel times come from?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "From the official scheduled timetables of the TTC network, published as open data in GTFS format. They cover an ordinary weekday, between 7 a.m. and 8 p.m."
+                "text": "From the official scheduled timetables of the GO Transit network, published as open data in GTFS format. They cover an ordinary weekday, between 7 a.m. and 8 p.m."
               }
             },
             {
@@ -62,7 +62,7 @@
               "name": "Are buses included?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Yes, optionally on the map. By default, only subways and streetcars are shown, to highlight the backbone of the network."
+                "text": "Yes, optionally on the map. By default, only subways and trams are shown, to highlight the backbone of the network."
               }
             },
             {
@@ -78,7 +78,7 @@
         {
           "@type": "Person",
           "@id": "https://github.com/zhenhuasun#me",
-          "name": "Joshua Sun",
+          "name": "zhenhuasun",
           "url": "https://github.com/zhenhuasun",
           "sameAs": [
             "https://github.com/zhenhuasun"
@@ -89,80 +89,50 @@
     </script>
     <link rel="preconnect" href="https://fonts.bunny.net" />
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800" />
-    <link rel="stylesheet" href="./styles.css?v=9e078b8e" />
+    <link rel="stylesheet" href="./styles.css?v=b0171719" />
   </head>
   <body>
     <header class="topbar">
       <nav class="topbar-inner" aria-label="Main navigation">
-        <a class="brand" href="./"><img src="./favicon.svg" width="22" height="22" alt="" /> Toronto by Transit</a>
+        <a class="brand" href="./"><img src="./favicon.svg" width="22" height="22" alt="" /> Within Tram Reach</a>
       </nav>
     </header>
 
     <main class="page">
       <section class="hero">
-        <span class="chip">🍁 Toronto</span>
-        <span class="chip">🚇 TTC</span>
-        <span class="chip">⏱️ Travel Time Map</span>
-        <h1>Toronto by Transit</h1>
+        <span class="chip">🚋 Greater Toronto and Hamilton Area</span>
+        <h1>Greater Toronto and Hamilton Area by transit</h1>
         <p class="lede">
-          Explore Toronto through transit travel time, not distance.
-          Choose a starting location and explore travel times across Toronto by subway, streetcar, and bus using official schedule data.
+          How long does it really take to cross Greater Toronto and Hamilton Area by train? Set a start point:
+          the whole city is colored by travel time, computed from the GO Transit network's official schedules.
         </p>
-        <p><a class="button primary" href="./toronto/">Launch the Map</a></p>
+        <p><a class="button primary" href="./gtha/">Open the Greater Toronto and Hamilton Area travel-time map →</a></p>
       </section>
-      
-      <section class="section">
-        <p>
-          A trip that looks short on a map may take an hour by transit.
-          This tool helps visualize Toronto through actual travel times by transit,
-          making it easier to compare neighbourhood accessibility,
-          commute options, and transit connectivity.
-        </p>
-      </section>
-      
+
       <section class="section" aria-labelledby="how-title">
         <h2 id="how-title">How it works</h2>
         <ol class="steps large">
-          <li>
-            <strong>1. Choose a starting point</strong>
-            Enter an address, select a station, or use your current location.
-          </li>
-          <li>
-            <strong>2. Explore the network</strong> 
-            Click anywhere on the map to view travel times, routes, transfers, and walking connections.
-          </li>
-          <li>
-            <strong>3. Compare accessibility</strong>
-            See which Toronto neighbourhoods are reachable within 15, 30, 45, or 60 minutes by transit.
-          </li>
+          <li><strong>1. Pick a start</strong> An address, a station, or your location: the map colors around it.</li>
+          <li><strong>2. Click a destination</strong> You get the duration and the itinerary: which line to take, transfers, walking.</li>
+          <li><strong>3. Compare</strong> The 15- and 30-minute curves show what is really close, by subway, tram, or bus.</li>
         </ol>
       </section>
 
       <section class="section" aria-labelledby="faq-title">
         <h2 id="faq-title">Frequently asked questions</h2>
-        <details class="faq">
-          <summary>Where do the travel times come from?</summary>
-          <p>Travel times are calculated using official TTC schedules published in GTFS (General Transit Feed Specification) format. The map represents a typical weekday service pattern between 7:00 a.m. and 8:00 p.m.</p>
-        </details>
-        <details class="faq">
-          <summary>How accurate are the travel times?</summary>
-          <p>The results are schedule-based estimates. They include walking time, average waiting time, scheduled in-vehicle travel time, and transfers. Real-time delays, congestion, service disruptions, and crowding are not included.</p>
-        </details>
-        <details class="faq">
-          <summary>Are buses included?</summary>
-          <p>Yes. Subway, streetcar, and bus services can all be included in travel-time calculations. Some map views may emphasize rapid transit to highlight the core TTC network.</p>
-        </details>
-        <details class="faq">
-          <summary>Who made this site?</summary><p>This Toronto edition was created by <a href="https://github.com/zhenhuasun">Joshua Sun</a> using TTC schedule data. The idea comes from <a href="https://castrio.me/nyc/">NYC Transit Time Cartogram</a> by Anthony Castrio, later adapted to Paris by Jules Grandin (<a href="https://julesgrandin.github.io/paris-temps-transport/">C'est encore loin&nbsp;?</a>), then extended by <a href="https://github.com/camilleroux/montpellier-temps-transport">Camille Roux</a> — the concept and engineering are his work. The code is open on <a href="https://github.com/zhenhuasun/ttc-travel-time">GitHub</a>.</p></details>
+        <details class="faq"><summary>Where do the travel times come from?</summary><p>From the official scheduled timetables of the GO Transit network, published as open data in GTFS format. They cover an ordinary weekday, between 7 a.m. and 8 p.m.</p></details>
+        <details class="faq"><summary>Are the displayed times reliable?</summary><p>These are &quot;on paper&quot; averages: walk to the stop, waiting time equal to half the interval between two services, scheduled time between stops, and transfers. No real-time data or disruptions.</p></details>
+        <details class="faq"><summary>Are buses included?</summary><p>Yes, optionally on the map. By default, only subways and trams are shown, to highlight the backbone of the network.</p></details>
+        <details class="faq"><summary>Who made this site?</summary><p>The idea comes from <a href="https://castrio.me/nyc/">NYC Transit Time Cartogram</a> by Anthony Castrio, later adapted to Paris by Jules Grandin (<a href="https://julesgrandin.github.io/paris-temps-transport/">C'est encore loin&nbsp;?</a>), then extended by <a href="https://github.com/camilleroux/montpellier-temps-transport">Camille Roux</a> — the concept and engineering are his work. This Toronto edition is a fork by <a href="https://github.com/zhenhuasun">zhenhuasun</a>, using TTC schedules. The code is open on <a href="https://github.com/zhenhuasun/ttc-travel-time">GitHub</a>.</p></details>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="footer-inner">
         <p class="footer-author">
-          The Toronto by Transit was created by <a href="https://github.com/zhenhuasun">Joshua Sun</a>. 
           Forked from <a href="https://github.com/camilleroux/montpellier-temps-transport">montpellier-temps-transport</a>
-          by Camille Roux — the concept and engineering are his work, based on the idea by Anthony Castrio and Jules Grandin. 
+          by Camille Roux — the concept and engineering are his work, based on the idea by Anthony Castrio and
+          Jules Grandin. This Toronto edition is published by <a href="https://github.com/zhenhuasun" rel="author">zhenhuasun</a>.
         </p>
         <p class="footer-links">
           <a href="https://github.com/zhenhuasun/ttc-travel-time" rel="noopener">Source code on GitHub</a> ·
@@ -171,19 +141,12 @@
         </p>
         <p class="footer-credits">
           Original idea: Anthony Castrio's <a href="https://castrio.me/nyc/">NYC Transit Time Cartogram</a>,
-          later developed by Jules Grandin
-          (<a href="https://julesgrandin.github.io/paris-temps-transport/">C'est encore loin&nbsp;?</a>)
-          and by Camille Roux
-          (<a href="https://tram.camilleroux.com/">À portée de tram</a>).
-          Timetables: <a href="https://open.toronto.ca/dataset/ttc-routes-and-schedules">GTFS TTC</a> (City of Toronto). Basemap © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>,
-          OpenStreetMap administrative boundaries, address search via
-          <a href="https://photon.komoot.io/">Photon</a> (komoot, OpenStreetMap data).
+          later adapted to Paris by Jules Grandin
+          (<a href="https://julesgrandin.github.io/paris-temps-transport/">C'est encore loin&nbsp;?</a>).
+           Basemap © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>,
+          <a href="https://geo.api.gouv.fr/">municipal boundaries</a>, address search via the
+          <a href="https://adresse.data.gouv.fr/">Base Adresse Nationale</a>.
           Computed data published under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a> license, code under the MIT license.
-        </p>
-        <p class="footer-disclaimer">
-          This is an independent personal project created using publicly available open data. 
-          Views, analyses, and conclusions presented here are solely those of the author 
-          and do not represent the views of any employer, transportation agency, government organization, or affiliated institution.
         </p>
       </div>
     </footer>
