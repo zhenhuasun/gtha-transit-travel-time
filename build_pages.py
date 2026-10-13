@@ -468,9 +468,16 @@ def gtfs_feeds(city: dict) -> list[dict]:
 
 def render_legal(cities: list[dict]) -> str:
     """Legal notice and the licence of every source."""
+    def licence_cell(feed: dict) -> str:
+        info = LICENCES.get(feed.get("licence", ""))
+        if info:
+            return f'<a href="{info[1]}">{info[0]}</a>'
+        # TODO: fill in each agency's GTFS licence ("licence" key in the city's gtfsExtra).
+        return f'<a href="{esc(feed["dataset"])}">Open data terms</a>'
+
     rows = "\n".join(
         f'          <tr><td>{esc(city["name"])}</td><td><a href="{esc(feed["dataset"])}">GTFS {esc(feed["network"])}</a></td>'
-        f'<td><a href="{LICENCES[feed["licence"]][1]}">{LICENCES[feed["licence"]][0]}</a></td>'
+        f'<td>{licence_cell(feed)}</td>'
         f'<td>{french_date(feed["fetchedAt"]) if feed["fetchedAt"] else "—"}</td></tr>'
         for city in sorted(cities, key=lambda item: item["name"])
         for feed in gtfs_feeds(city)
