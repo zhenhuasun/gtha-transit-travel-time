@@ -647,6 +647,8 @@ h1 {
   }
   .sheet-handle {
     display: block;
+    position: relative;
+    z-index: 2;
     padding: 8px 0 4px;
     cursor: grab;
     touch-action: none;
@@ -1009,14 +1011,34 @@ h1 {
 }
 
 @media (max-width: 720px) {
-  /* Mobile: legend top-left, clear of the bottom sheet. Must come after the
-     base .legend rule (same specificity, later wins). */
+  /* Mobile: legend top-left, same height as the zoom button (38px) so their
+     bottom edges align. Must come after the base .legend rule. */
   .legend {
     top: 14px;
     left: 14px;
     right: auto;
     bottom: auto;
     width: 180px;
+    height: 38px;
+    padding: 6px 12px;
+    box-sizing: border-box;
+    z-index: 1;
+  }
+  .legend-bar {
+    height: 8px;
+  }
+  .legend-labels {
+    margin-top: 3px;
+    font-size: 0.68rem;
+  }
+}
+
+/* Landscape phones: disable sticky header (viewport too short). */
+@media (max-width: 720px) and (orientation: landscape) {
+  .trip-panel[data-sheet="full"] .panel-sticky-head {
+    position: static;
+    margin: 0 0 12px;
+    padding: 0 0 10px;
   }
 }
 
