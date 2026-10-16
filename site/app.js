@@ -1504,20 +1504,18 @@ function downloadCsv() {
   toast("Preparing download…");
   // Let the toast paint before the blocking Dijkstra runs.
   setTimeout(() => {
-  // The export is deterministic: both columns are always computed, regardless
-  // of the bus toggle (which only controls what the map displays).
+  // The export is deterministic: always bus-inclusive, regardless of the bus
+  // toggle (which only controls what the map displays). The UI sets the start
+  // point; the data covers every stop.
   const wasBus = app.includeBus;
-  let railTimes, transitTimes;
+  let stationTime;
   if (wasBus) {
-    transitTimes = app.solution.stationTime;
-    app.includeBus = false;
-    railTimes = solveFrom(app.from.point).stationTime;
+    stationTime = app.solution.stationTime;
   } else {
-    railTimes = app.solution.stationTime;
     app.includeBus = true;
-    transitTimes = solveFrom(app.from.point).stationTime;
+    stationTime = solveFrom(app.from.point).stationTime;
+    app.includeBus = wasBus;
   }
-  app.includeBus = wasBus;
   const { lat: fromLat, lon: fromLon } = toLatLon(app.from.point);
   const ref = String(app.data.meta.referenceDate); // YYYYMMDD
   const refLabel = `${ref.slice(0, 4)}-${ref.slice(4, 6)}-${ref.slice(6, 8)}`;
@@ -1525,39 +1523,34 @@ function downloadCsv() {
   const lines = [
     `# Travel times from: ${app.from.label} (${fromLat.toFixed(5)}, ${fromLon.toFixed(5)})`,
     `# Reference: Thursday ${refLabel}; scheduled weekday departures 07:00-20:00; walking + waiting included`,
-    `# travel_time_rail_min: walk + train/subway/streetcar only; travel_time_transit_min: walk + all transit incl. bus`,
-    `# Unit: minutes; empty = unreachable`,
+    `# travel_time_min: walk + all transit (train/subway/streetcar/bus); unit: minutes; empty = unreachable`,
     `# Data build: ${CITY.dataVersion}; generated ${new Date().toISOString().slice(0, 10)}`,
-    `# GTFS feed service windows (the "version" of each schedule):`,
+    `# Schedule source per agency (service windows):`,
     ...Object.values(FEED_META).map((f, i) => {
       const slug = Object.keys(FEED_META)[i];
       return `# - ${f.agency} (${slug}): ${f.serviceStart} to ${f.serviceEnd}`;
     }),
-    "station_id,station_name,lat,lon,rail,routes,agency,gtfs_service_start,gtfs_service_end,travel_time_rail_min,travel_time_transit_min",
+    "station_id,station_name,lat,lon,rail,routes,agency,travel_time_min",
   ];
 
   app.data.stations.forEach((station, index) => {
     const { lat, lon } = toLatLon(station.point);
     const routeIds = station.routes || [];
     const agencies = [...new Set(routeIds.map((r) => FEED_META[feedOf(String(r))]?.agency).filter(Boolean))];
-    const starts = routeIds.map((r) => FEED_META[feedOf(String(r))]?.serviceStart).filter(Boolean);
-    const ends = routeIds.map((r) => FEED_META[feedOf(String(r))]?.serviceEnd).filter(Boolean);
     const names = [...new Set(routeIds.map((r) => app.data.routeInfo[String(r)]?.name).filter(Boolean))];
-    const railMin = railTimes[index];
-    const transitMin = transitTimes[index];
+    // Unified ID format: GO's raw IDs get the gotransit: prefix like everyone else.
+    const sid = station.id.includes(":") ? station.id : `gotransit:${station.id}`;
+    const minutes = stationTime[index];
     lines.push(
       [
-        csvEscape(station.id),
+        csvEscape(sid),
         csvEscape(station.name),
         lat.toFixed(5),
         lon.toFixed(5),
         station.rail ? "true" : "false",
         csvEscape(names.join("|")),
         csvEscape(agencies.join("|")),
-        starts.length ? starts.sort()[0] : "",
-        ends.length ? ends.sort().pop() : "",
-        Number.isFinite(railMin) ? railMin.toFixed(1) : "",
-        Number.isFinite(transitMin) ? transitMin.toFixed(1) : "",
+        Number.isFinite(minutes) ? minutes.toFixed(1) : "",
       ].join(","),
     );
   });
