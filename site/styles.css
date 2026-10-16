@@ -569,6 +569,45 @@ h1 {
   display: none;
 }
 
+.panel-collapse {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.panel-collapse:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.panel-expand {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 4;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.panel-expand[hidden] {
+  display: none;
+}
+
 /* --- Mobile bottom sheet: peek / half / full, <720px only --- */
 @media (max-width: 720px) {
   .trip-panel {
@@ -608,6 +647,18 @@ h1 {
     margin: 0 auto;
     border-radius: 999px;
     background: var(--line);
+  }
+  /* Legend sits above the bottom sheet on mobile. */
+  .legend {
+    top: 64px;
+    right: 14px;
+    bottom: auto;
+    width: 180px;
+  }
+  /* The collapse button is redundant with the sheet's peek state. */
+  .panel-collapse,
+  .panel-expand {
+    display: none;
   }
 }
 
@@ -917,7 +968,7 @@ h1 {
 
 .legend {
   position: absolute;
-  left: 14px;
+  right: 14px;
   bottom: 14px;
   width: 220px;
   padding: 10px 12px 8px;

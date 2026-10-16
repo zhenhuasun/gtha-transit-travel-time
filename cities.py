@@ -16,7 +16,7 @@ CITIES_DIR = ROOT / "cities"
 RAIL_NOUN = {"tram": "tram", "metro": "subway", "metro+tram": "subway and tram", "rail": "train"}
 RAIL_LABEL = {"tram": "Tram", "metro": "Subway", "metro+tram": "Subway and tram", "rail": "Train"}
 RAIL_STATIONS = {"tram": "tram stations", "metro": "subway stations", "metro+tram": "subway and tram stations",
-                 "rail": "train stations"}
+                 "rail": "train, subway, streetcar, LRT stations"}
 # Half-sizes (degrees of latitude, longitude) of the OSM areas around the centre.
 OSM_HALF_SIZE = (0.22, 0.32)
 PARKS_HALF_SIZE = (0.06, 0.08)
