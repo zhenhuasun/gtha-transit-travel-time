@@ -1202,7 +1202,18 @@ function setHeatFrom(source) {
   for (const button of $("heatFrom").querySelectorAll("button")) {
     button.setAttribute("aria-pressed", String(button.dataset.source === app.heatFrom));
   }
+  updateDownloadLabel();
   recompute();
+}
+
+/** The download button names the direction it exports. */
+function updateDownloadLabel() {
+  const el = $("downloadCsv");
+  if (!el) return;
+  el.textContent =
+    app.heatFrom === "to" && app.to
+      ? "Download times to the destination (CSV)"
+      : "Download times from the start (CSV)";
 }
 
 function updatePanel() {
@@ -2154,6 +2165,7 @@ async function init() {
   hintArmed = true;
   initSheet();
   initPanelCollapse();
+  updateDownloadLabel();
   new ResizeObserver(resize).observe(canvas);
 }
 
