@@ -1,12 +1,12 @@
 // Service worker for GTHA by Transit.
 //
-// The network data file (site/data/<city>.json, ~10-52 MB) is the slow part of
+// The network data file (site/data/<city>.bin, ~10-22 MB) is the slow part of
 // every first visit. Cache it aggressively: the URL carries ?v=<dataVersion>,
 // so a data rebuild is a brand-new cache key and stale data can never be served.
 // The app shell (HTML/JS/CSS) uses network-first so code updates propagate.
 
 const CACHE = "gtha-transit-v1";
-const DATA_PATH = /\/data\/[a-z]+\.json$/;
+const DATA_PATH = /\/data\/[a-z]+\.bin$/;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
