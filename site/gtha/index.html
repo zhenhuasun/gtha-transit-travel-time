@@ -221,7 +221,7 @@
             <label class="pill-toggle"><input id="busToggle" type="checkbox" checked /> Bus</label>
           </div>
           <div id="isoToggles" class="control-group">
-            <span class="control-label">Isochrones</span>
+            <span class="control-label">Time Budget</span>
             <label class="pill-toggle"><input type="checkbox" value="15" checked /> 15 min</label>
             <label class="pill-toggle"><input type="checkbox" value="30" checked /> 30 min</label>
             <label class="pill-toggle"><input type="checkbox" value="45" /> 45 min</label>
@@ -229,7 +229,7 @@
           </div>
           <div class="control-group">
             <label class="control-label" for="maxRange">Scale</label>
-            <input id="maxRange" type="range" min="20" max="90" step="5" value="60" />
+            <input id="maxRange" type="range" min="20" max="120" step="5" value="60" />
             <output id="maxValue" for="maxRange">60 min</output>
           </div>
           <div class="control-group actions">
@@ -337,7 +337,7 @@
     </footer>
 
     <div id="toast" class="toast" role="status" hidden></div>
-    <script type="module" src="../app.js?v=a9199f6b"></script>
+    <script type="module" src="../app.js?v=e5bb8b3f"></script>
     <script>
       // Cache the 52 MB network data for instant repeat visits.
       if ("serviceWorker" in navigator) {
