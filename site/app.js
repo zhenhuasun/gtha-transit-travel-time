@@ -2247,14 +2247,16 @@ function startOnboardingStep1() {
   const searchForm = $("searchForm");
   if (searchForm) searchForm.classList.add("onboarding-highlight");
 
-  // Highlight green dot via positioned div
-  const [sx, sy] = project(app.from.point);
-  const canvas = $("map");
-  const rect = canvas.getBoundingClientRect();
-  const dotHl = document.createElement("div");
-  dotHl.className = "onboarding-dot-highlight";
-  dotHl.style.cssText = `position:fixed;left:${rect.left + sx - 20}px;top:${rect.top + sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);`;
-  document.body.appendChild(dotHl);
+  // Highlight green dot via positioned div (non-fatal if project fails)
+  try {
+    const [sx, sy] = project(app.from.point);
+    const canvas = $("map");
+    const rect = canvas.getBoundingClientRect();
+    const dotHl = document.createElement("div");
+    dotHl.className = "onboarding-dot-highlight";
+    dotHl.style.cssText = `position:fixed;left:${rect.left + sx - 20}px;top:${rect.top + sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);`;
+    document.body.appendChild(dotHl);
+  } catch (e) { console.warn("onboarding dot highlight failed", e); }
 
   // Tooltip near search (centered, guaranteed visible)
   const srect = searchForm.getBoundingClientRect();
