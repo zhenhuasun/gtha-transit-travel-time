@@ -45,7 +45,8 @@ ${original_map}        <form id="searchForm" class="search" role="search" autoco
           </div>
           <canvas id="mapCanvas"></canvas>
 
-          <aside id="tripPanel" class="trip-panel" aria-live="polite">
+          <aside id="tripPanel" class="trip-panel" aria-live="polite" data-sheet="half">
+            <div id="sheetHandle" class="sheet-handle" aria-hidden="true"><span></span></div>
             <p class="trip-eyebrow">Start</p>
             <p id="tripFrom" class="trip-from">Loading the network…</p>
             <div id="loadProgress" class="load-progress" hidden>
