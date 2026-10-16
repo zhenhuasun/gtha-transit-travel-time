@@ -512,6 +512,17 @@ h1 {
   background: rgba(255, 255, 255, 0.32);
 }
 
+@media (max-width: 720px) {
+  .first-hint {
+    top: auto;
+    bottom: 14px;
+    font-size: 0.8rem;
+    max-width: calc(100% - 24px);
+    white-space: normal;
+    text-align: center;
+  }
+}
+
 .map-stage:fullscreen {
   height: 100vh;
 }
