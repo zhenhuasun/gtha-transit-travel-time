@@ -1218,13 +1218,16 @@ function updateDownloadLabel() {
 
 function updatePanel() {
   $("tripFrom").textContent = app.from?.label ?? "—";
-  const result = $("tripResult");
+  const destHead = $("tripDestHead");
+  const stepsWrap = $("tripStepsWrap");
   if (!app.to || !app.solution) {
-    result.hidden = true;
+    if (destHead) destHead.hidden = true;
+    if (stepsWrap) stepsWrap.hidden = true;
     $("tripHint").hidden = false;
   } else {
     const itinerary = buildItinerary(app.solution, app.to.point);
-    result.hidden = false;
+    if (destHead) destHead.hidden = false;
+    if (stepsWrap) stepsWrap.hidden = false;
     $("tripHint").hidden = true;
     $("tripTo").textContent = app.to.label;
     $("tripDuration").textContent = formatMinutes(itinerary.minutes);
@@ -1649,21 +1652,27 @@ function downloadCsv() {
     const routeIds = station.routes || [];
     const agencies = [...new Set(routeIds.map((r) => FEED_META[feedOf(String(r))]?.agency).filter(Boolean))];
     const names = [...new Set(routeIds.map((r) => app.data.routeInfo[String(r)]?.name).filter(Boolean))];
-    // Unified ID format: GO's raw IDs get the gotransit: prefix like everyone else.
-    const sid = station.id.includes(":") ? station.id : `gotransit:${station.id}`;
     const minutes = stationTime[index];
-    lines.push(
-      [
-        csvEscape(sid),
-        csvEscape(station.name),
-        lat.toFixed(5),
-        lon.toFixed(5),
-        station.rail ? "true" : "false",
-        csvEscape(names.join("|")),
-        csvEscape(agencies.join("|")),
-        Number.isFinite(minutes) ? minutes.toFixed(1) : "",
-      ].join(","),
-    );
+    const timeStr = Number.isFinite(minutes) ? minutes.toFixed(1) : "";
+    // Tidy data: one row per (station, agency ID). Multi-agency stops replicate
+    // the row with each agency's stop ID; travel_time_min is identical.
+    const ids = station.all_ids && station.all_ids.length ? station.all_ids : [station.id];
+    ids.forEach((rawId) => {
+      // Unified ID format: GO's raw IDs get the gotransit: prefix like everyone else.
+      const sid = rawId.includes(":") ? rawId : `gotransit:${rawId}`;
+      lines.push(
+        [
+          csvEscape(sid),
+          csvEscape(station.name),
+          lat.toFixed(5),
+          lon.toFixed(5),
+          station.rail ? "true" : "false",
+          csvEscape(names.join("|")),
+          csvEscape(agencies.join("|")),
+          timeStr,
+        ].join(","),
+      );
+    });
   });
 
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
