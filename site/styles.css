@@ -631,6 +631,10 @@ h1 {
   color: var(--ink);
 }
 
+.download-csv {
+  margin-top: 6px;
+}
+
 .segmented {
   display: flex;
   align-items: center;
