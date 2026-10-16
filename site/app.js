@@ -793,19 +793,39 @@ function drawCommuneNames() {
   }
 }
 
-function drawMarker(point, color, label) {
+function drawMarker(point, color, label, pulse = false) {
   const [x, y] = project(point);
+  // Expanding ring shown briefly when the origin (re)settles, so the eye finds
+  // "where am I" at first glance. render() keeps animating while it is alive.
+  if (pulse && app.originPulse) {
+    const age = (performance.now() - app.originPulse) / 900;
+    if (age < 1) {
+      ctx.save();
+      ctx.globalAlpha = (1 - age) * 0.75;
+      ctx.beginPath();
+      ctx.arc(x, y, 10 + age * 30, 0, Math.PI * 2);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      ctx.restore();
+      app.pulseActive = true;
+    } else {
+      app.originPulse = 0;
+    }
+  }
   ctx.beginPath();
   ctx.arc(x, y, 15, 0, Math.PI * 2);
   ctx.fillStyle = `${color}2e`;
+  ctx.fill();
+  // Crisp white ring: a green dot on the green heatmap washes out without it.
+  ctx.beginPath();
+  ctx.arc(x, y, 11, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
   ctx.fill();
   ctx.beginPath();
   ctx.arc(x, y, 8, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "#fff";
-  ctx.stroke();
   if (!label) return;
   ctx.font = "700 12px Inter, sans-serif";
   const width = ctx.measureText(label).width + 16;
@@ -877,7 +897,11 @@ function render() {
     const minutes = app.solution ? formatMinutes(travelTo(app.solution, app.to.point).minutes) : null;
     drawMarker(app.to.point, COLORS.to, app.heatFrom === "to" ? `Destination · ${minutes}` : minutes);
   }
-  if (app.from) drawMarker(app.from.point, COLORS.from, "Start");
+  if (app.from) drawMarker(app.from.point, COLORS.from, "Start", true);
+  if (app.pulseActive) {
+    app.pulseActive = false;
+    requestAnimationFrame(render);
+  }
 }
 
 function requestRender() {
@@ -949,6 +973,7 @@ function recompute({ fast = false } = {}) {
 function setFrom(point, label = null, { quiet = false, fast = false } = {}) {
   if (!isOnLand(point)) return false;
   app.from = { point, label: label || describePlace(point) };
+  app.originPulse = performance.now();
   recompute({ fast });
   if (!quiet) syncUrl();
   return true;
@@ -1131,6 +1156,7 @@ function markerAt(screen, kind = "mouse") {
 }
 
 canvas.addEventListener("pointerdown", (event) => {
+  cancelFly();
   const screen = eventPoint(event);
   app.pointers.set(event.pointerId, screen);
   canvas.setPointerCapture(event.pointerId);
@@ -1206,6 +1232,7 @@ canvas.addEventListener(
   "wheel",
   (event) => {
     event.preventDefault();
+    cancelFly();
     const [x, y] = eventPoint(event);
     zoomAt(Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0018)), x, y);
   },
@@ -1216,9 +1243,33 @@ canvas.addEventListener(
 
 $("zoomIn").addEventListener("click", () => zoomAt(1.4, app.size.width / 2, app.size.height / 2));
 $("zoomOut").addEventListener("click", () => zoomAt(1 / 1.4, app.size.width / 2, app.size.height / 2));
+// Smoothly pan so the start point is centered, keeping the current zoom.
+// Any user grab (drag / wheel / pinch) cancels the flight.
+function flyTo(point, duration = 650) {
+  cancelFly();
+  const x0 = app.view.cx;
+  const y0 = app.view.cy;
+  const t0 = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / duration);
+    const e = 1 - Math.pow(1 - t, 3);
+    app.view.cx = x0 + (point[0] - x0) * e;
+    app.view.cy = y0 + (point[1] - y0) * e;
+    app.flyId = t < 1 ? requestAnimationFrame(step) : 0;
+    requestRender();
+  };
+  app.flyId = requestAnimationFrame(step);
+}
+
+function cancelFly() {
+  if (app.flyId) {
+    cancelAnimationFrame(app.flyId);
+    app.flyId = 0;
+  }
+}
+
 $("recenter").addEventListener("click", () => {
-  fitView();
-  requestRender();
+  if (app.from) flyTo(app.from.point);
 });
 // The iPhone can't fullscreen a page element: the button is hidden.
 $("fullscreen").hidden = !document.fullscreenEnabled;
