@@ -748,19 +748,25 @@ h1 {
 
 .trip-steps li {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 8px;
   padding: 4px 0;
 }
 
+.trip-steps li > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
 .trip-steps .badge {
   flex: none;
-  min-width: 26px;
-  padding: 2px 6px;
+  width: 34px;
+  padding: 2px 4px;
   border-radius: 6px;
   font-size: 0.78rem;
   font-weight: 700;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .trip-steps .walk {
