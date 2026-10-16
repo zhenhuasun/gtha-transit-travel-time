@@ -1437,10 +1437,45 @@ document.addEventListener("click", (event) => {
 
 // --- Startup ----------------------------------------------------------------
 
+// Download the network data with a progress bar. The expected byte size comes
+// from CITY.dataBytes (exact file size baked in at build time), because the
+// browser transparently gunzips the response and Content-Length would report
+// the compressed size while the stream yields decompressed bytes.
+async function loadDataWithProgress() {
+  const progress = $("loadProgress");
+  const fill = $("loadBarFill");
+  const label = $("loadLabel");
+  const show = (received, total) => {
+    progress.hidden = false;
+    if (total > 0) {
+      fill.style.width = Math.min(100, (received / total) * 100).toFixed(1) + "%";
+      label.textContent = `${(received / 1048576).toFixed(1)} / ${(total / 1048576).toFixed(0)} MB`;
+    } else {
+      label.textContent = `${(received / 1048576).toFixed(1)} MB received…`;
+    }
+  };
+  const response = await fetch(DATA_URL);
+  if (!response.ok) throw new Error(`HTTP ${response.status} loading ${DATA_URL}`);
+  const total = Number(CITY.dataBytes) || 0;
+  if (!response.body || !response.body.getReader) return response.json();
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.byteLength;
+    show(received, total);
+  }
+  label.textContent = "Preparing the map…";
+  return JSON.parse(await new Blob(chunks).text());
+}
+
 async function init() {
   resize();
-  const response = await fetch(DATA_URL);
-  app.data = await response.json();
+  app.data = await loadDataWithProgress();
+  $("loadProgress").hidden = true;
   app.offset = [app.data.meta.bounds[0], app.data.meta.bounds[1]];
   app.graph = prepareGraph(app.data);
   app.rivers = indexRivers(app.data.rivers);
@@ -1453,5 +1488,6 @@ async function init() {
 
 init().catch((error) => {
   console.error(error);
+  $("loadProgress").hidden = true;
   $("tripFrom").textContent = "Couldn't load the network.";
 });
