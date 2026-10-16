@@ -1460,6 +1460,107 @@ function downloadCsv() {
 
 $("downloadCsv").addEventListener("click", downloadCsv);
 
+// --- My places: named origins in localStorage, no account -------------------
+
+const PLACES_KEY = "gtha-transit.places";
+const PLACES_MAX = 8;
+
+function loadPlaces() {
+  try {
+    const raw = localStorage.getItem(PLACES_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((p) => p && typeof p.lat === "number" && typeof p.lon === "number") : [];
+  } catch {
+    return [];
+  }
+}
+
+function storePlaces(places) {
+  try {
+    localStorage.setItem(PLACES_KEY, JSON.stringify(places));
+  } catch {
+    /* private mode: places just don't persist */
+  }
+}
+
+function placeEmoji(name) {
+  const n = name.toLowerCase();
+  if (/home|家|house|condo|appart/.test(n)) return "🏠";
+  if (/work|公司|office|job/.test(n)) return "🏢";
+  return "📍";
+}
+
+function renderPlaces() {
+  const row = $("placesRow");
+  const places = loadPlaces();
+  row.hidden = places.length === 0;
+  row.replaceChildren(
+    ...places.map((place, i) => {
+      const chip = document.createElement("span");
+      chip.className = "place-chip";
+      const go = document.createElement("button");
+      go.type = "button";
+      go.className = "chip-go";
+      go.textContent = `${placeEmoji(place.name)} ${place.name}`;
+      go.title = "Set as start";
+      go.addEventListener("click", () => {
+        const point = toWorld(place.lat, place.lon);
+        if (setFrom(point, place.name)) flyTo(point);
+      });
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "chip-del";
+      del.textContent = "×";
+      del.setAttribute("aria-label", `Remove ${place.name}`);
+      del.addEventListener("click", () => {
+        storePlaces(loadPlaces().filter((_, j) => j !== i));
+        renderPlaces();
+      });
+      chip.append(go, del);
+      return chip;
+    }),
+  );
+}
+
+function confirmSavePlace() {
+  if (!app.from) return;
+  const input = $("placeNameInput");
+  const name = input.value.trim().slice(0, 24) || "Place";
+  const { lat, lon } = toLatLon(app.from.point);
+  const places = loadPlaces();
+  places.push({ name, lat: +lat.toFixed(5), lon: +lon.toFixed(5) });
+  storePlaces(places.slice(0, PLACES_MAX));
+  $("placeNameRow").hidden = true;
+  renderPlaces();
+  toast(`Saved "${name}".`);
+}
+
+$("savePlace").addEventListener("click", () => {
+  if (!app.from) {
+    toast("Set a start point first.");
+    return;
+  }
+  if (loadPlaces().length >= PLACES_MAX) {
+    toast(`Places full (${PLACES_MAX} max).`);
+    return;
+  }
+  const row = $("placeNameRow");
+  row.hidden = false;
+  const input = $("placeNameInput");
+  input.value = app.from.label || "";
+  input.focus();
+  input.select();
+});
+
+$("placeNameOk").addEventListener("click", confirmSavePlace);
+$("placeNameCancel").addEventListener("click", () => {
+  $("placeNameRow").hidden = true;
+});
+$("placeNameInput").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") confirmSavePlace();
+  if (event.key === "Escape") $("placeNameRow").hidden = true;
+});
+
 // --- Address search (Base Adresse Nationale) ----------------------------
 
 const searchInput = $("searchInput");
@@ -1639,6 +1740,7 @@ async function init() {
   app.size.width = 0;
   resize();
   restoreFromUrl();
+  renderPlaces();
   new ResizeObserver(resize).observe(canvas);
 }
 
