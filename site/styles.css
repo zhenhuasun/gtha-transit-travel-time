@@ -1610,18 +1610,7 @@ output {
     height: 60vh;
   }
 
-  /* Sur mobile, l'itinéraire passe sous la carte au lieu de la recouvrir. */
-  .trip-panel {
-    position: static;
-    width: auto;
-    max-height: none;
-    padding: 14px 16px;
-    border: 0;
-    border-top: 1px solid var(--line);
-    border-radius: 0;
-    background: var(--surface);
-    box-shadow: none;
-  }
+  /* (Mobile trip-panel is now a bottom sheet; see the sheet block above.) */
 
   .map-stage:fullscreen .trip-panel {
     display: none;
