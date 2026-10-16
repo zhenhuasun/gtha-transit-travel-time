@@ -1671,12 +1671,7 @@ output {
     font-size: 1.5rem;
   }
 
-  .legend {
-    top: 10px;
-    bottom: auto;
-    left: 10px;
-    width: 160px;
-  }
+  /* (Mobile legend is positioned in the bottom-sheet block above.) */
 
   .map-buttons {
     top: 10px;
