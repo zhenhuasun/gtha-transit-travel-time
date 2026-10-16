@@ -1337,6 +1337,7 @@ function restoreFromUrl() {
   }
   for (const input of $("isoToggles").querySelectorAll("input")) input.checked = app.isochrones.includes(Number(input.value));
   updateLegend();
+  updateIsoDesc();
 
   const from = parsePair(params.get("from"));
   if (!from || !setFrom(from, null, { quiet: true })) {
@@ -1527,9 +1528,23 @@ if (colorblindEl) colorblindEl.addEventListener("change", (event) => {
 
 $("isoToggles").addEventListener("change", () => {
   app.isochrones = [...$("isoToggles").querySelectorAll("input:checked")].map((input) => Number(input.value));
+  updateIsoDesc();
   requestRender();
   syncUrl();
 });
+
+function updateIsoDesc() {
+  const el = $("isoLineDesc");
+  if (!el) return;
+  const mins = [...app.isochrones].sort((a, b) => a - b);
+  if (mins.length === 0) {
+    el.textContent = "";
+    return;
+  }
+  const parts = mins.map((m) => `${m} min`);
+  const list = parts.length === 1 ? parts[0] : parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1];
+  el.textContent = `Black lines: ${list}.`;
+}
 
 $("maxRange").addEventListener("input", (event) => {
   app.maxMinutes = Number(event.target.value);
