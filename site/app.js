@@ -1794,6 +1794,7 @@ function setSheet(state) {
 function initSheet() {
   const panel = $("tripPanel");
   const handle = $("sheetHandle");
+  if (!panel || !handle) return; // HTML without the handle (stale deploy): skip silently.
   // Tap the handle to cycle states.
   handle.addEventListener("click", () => {
     const next = SHEET_STATES[(SHEET_STATES.indexOf(panel.dataset.sheet) + 1) % SHEET_STATES.length];
