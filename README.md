@@ -17,7 +17,7 @@ Features: heatmap and isochrones from a draggable start, click-to-destination wi
 ## Coverage
 
 - **GO Transit** (rail + bus) and **UP Express**
-- **Local agencies:** TTC, MiWay, York Region Transit, Brampton Transit, Durham Region Transit, Oakville Transit, Burlington Transit, Hamilton Street Railway (Grand River Transit pending — its feed was unreachable at build time)
+- **Local agencies:** TTC, MiWay, York Region Transit, Brampton Transit, Durham Region Transit, Oakville Transit, Burlington Transit, Hamilton Street Railway, Milton Transit, Barrie Transit, Guelph Transit, Stratford Transit, Niagara Region Transit, Grand River Transit (bus + ION light rail)
 - **Boundary:** 27 municipalities, from Niagara Falls to Barrie and from Stratford to Peterborough, on a 400 m computation grid
 
 ## Run
@@ -43,7 +43,7 @@ City configuration lives in `cities/gtha.json` (GTFS URLs, OpenStreetMap boundar
 
 ## Data
 
-- Schedules: GTFS feeds — GO Transit and UP Express via [Metrolinx Open Data](https://www.metrolinx.com/en/about-us/open-data); TTC via [open.toronto.ca](https://open.toronto.ca/dataset/ttc-routes-and-schedules) (Toronto Open Government Licence); MiWay, York Region Transit, Brampton Transit, Durham Region Transit, Oakville Transit, Burlington Transit and Hamilton Street Railway via each agency's open data portal (per-feed licenses in the [legal notice](https://zhenhuasun.github.io/gtha-transit-travel-time/mentions-legales/))
+- Schedules: GTFS feeds — GO Transit and UP Express via [Metrolinx Open Data](https://www.metrolinx.com/en/about-us/open-data); TTC via [open.toronto.ca](https://open.toronto.ca/dataset/ttc-routes-and-schedules) (Toronto Open Government Licence); MiWay, York Region Transit, Brampton Transit, Durham Region Transit, Oakville Transit, Burlington Transit, Hamilton Street Railway, Milton Transit, Barrie Transit, Guelph Transit, Stratford Transit, Niagara Region Transit and Grand River Transit via each agency's open data portal (per-feed licenses in the [legal notice](https://zhenhuasun.github.io/gtha-transit-travel-time/mentions-legales/))
 - Municipal boundaries, water and parks: © OpenStreetMap contributors (ODbL), via Overpass
 - Address search in the browser: [Photon](https://photon.komoot.io/) (komoot, OpenStreetMap data)
 
