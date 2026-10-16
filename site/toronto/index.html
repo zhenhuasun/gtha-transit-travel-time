@@ -137,7 +137,7 @@
     <link rel="stylesheet" href="../styles.css?v=b0171719" />
   </head>
   <body>
-    <script id="city-config" type="application/json">{"slug": "toronto", "name": "Toronto", "dataVersion": "521dd346", "defaultFrom": {"label": "Yonge-Dundas Square", "lat": 43.6524, "lon": -79.3809}, "railNoun": "subway and tram", "railStations": "subway and tram stations", "busNoun": "bus", "geocoder": "photon", "searchBbox": [43.52, -79.72, 43.92, -79.02]}</script>
+    <script id="city-config" type="application/json">{"slug": "toronto", "name": "Toronto", "dataVersion": "521dd346", "dataBytes": 9981051, "defaultFrom": {"label": "Yonge-Dundas Square", "lat": 43.6524, "lon": -79.3809}, "railNoun": "subway and tram", "railStations": "subway and tram stations", "busNoun": "bus", "geocoder": "photon", "searchBbox": [43.52, -79.72, 43.92, -79.02]}</script>
     <header class="topbar">
       <nav class="topbar-inner" aria-label="Main navigation">
         <a class="brand" href="../"><img src="../favicon.svg" width="22" height="22" alt="" /> Within Tram Reach</a>
@@ -180,6 +180,10 @@
           <aside id="tripPanel" class="trip-panel" aria-live="polite">
             <p class="trip-eyebrow">Start</p>
             <p id="tripFrom" class="trip-from">Loading the network…</p>
+            <div id="loadProgress" class="load-progress" hidden>
+              <div class="load-bar" role="progressbar" aria-label="Loading network data"><div id="loadBarFill" class="load-bar-fill"></div></div>
+              <p id="loadLabel" class="load-label"></p>
+            </div>
             <div id="tripResult" class="trip-result" hidden>
               <div class="trip-row">
                 <p class="trip-eyebrow">Destination</p>
@@ -311,6 +315,14 @@
     </footer>
 
     <div id="toast" class="toast" role="status" hidden></div>
-    <script type="module" src="../app.js?v=04420849"></script>
+    <script type="module" src="../app.js?v=a9199f6b"></script>
+    <script>
+      // Cache the network data for instant repeat visits.
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("../sw.js").catch(function () {});
+        });
+      }
+    </script>
   </body>
 </html>
