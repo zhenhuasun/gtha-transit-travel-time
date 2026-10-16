@@ -1082,7 +1082,7 @@ function restoreFromUrl() {
   $("busToggle").checked = app.includeBus;
   const defMax = CITY.defaultMaxMinutes ?? DEFAULT_MAX;
   const max = Number(params.get("max"));
-  app.maxMinutes = max >= 20 && max <= 90 ? max : defMax;
+  app.maxMinutes = max >= 20 && max <= 120 ? max : defMax;
   $("maxRange").value = String(app.maxMinutes);
   if (params.has("iso")) {
     app.isochrones = params
