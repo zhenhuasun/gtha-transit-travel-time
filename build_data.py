@@ -696,6 +696,7 @@ def group_stops(stops: Dict[str, dict], used_stop_ids: set) -> Tuple[List[dict],
             complexes.append(
                 {
                     "id": min(cluster),
+                    "all_ids": sorted(cluster),
                     "name": display_name(names.most_common(1)[0][0]),
                     "point": (sum(xs) / len(xs), sum(ys) / len(ys)),
                     "routes": set(),
@@ -1042,8 +1043,25 @@ def network_stats(city: dict, route_info, stations, route_states, station_states
     """Figures shown on the page (and its FAQ): lines, headways, share of rail stations within 30 min of the centre."""
     rail_states = [i for i, state in enumerate(route_states) if route_info[state["routeId"]]["rail"]]
     lines = []
-    mode_order = {"metro": 0, "tram": 1, "funicular": 2, "cable": 3}
-    for route_id, info in sorted(route_info.items(), key=lambda item: (mode_order.get(item[1]["mode"], 9), len(item[1]["name"]), item[1]["name"])):
+    def line_sort_key(item):
+        route_id, info = item
+        name = info["name"]
+        # Group 0: GO Transit + UP Express, alphabetical (BR < KI < LE < LW < MI < RH < ST < UP
+        # matches Barrie < Kitchener < Lakeshore East < Lakeshore West < Milton < Richmond Hill < Stouffville < UP Express).
+        if route_id.startswith("09261126-") or route_id.startswith("up:"):
+            return (0, name)
+        # Group 1: TTC Line 1, 2, 4, 5, 6, numeric.
+        if route_id.startswith("ttc:") and len(name) == 1 and name.isdigit():
+            return (1, int(name))
+        # Group 2: ION.
+        if route_id.startswith("grtlrt:"):
+            return (2, name)
+        # Group 3: TTC streetcar, numeric.
+        if route_id.startswith("ttc:"):
+            return (3, int(name) if name.isdigit() else 9999)
+        # Fallback: by mode then name (other cities).
+        return (9, info["mode"], name)
+    for route_id, info in sorted(route_info.items(), key=line_sort_key):
         if not info["rail"]:
             continue
         waits = sorted(route_states[i]["wait"] for i in rail_states if route_states[i]["routeId"] == route_id)
@@ -1217,6 +1235,7 @@ def main() -> None:
     stations = [
         {
             "id": station["id"],
+            "all_ids": station["all_ids"],
             "name": station["name"],
             "point": station["point"],
             "routes": sorted(station["routes"], key=lambda r: (len(route_info[r]["name"]), route_info[r]["name"])),
