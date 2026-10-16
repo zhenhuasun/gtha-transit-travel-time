@@ -337,7 +337,7 @@ def render_city(template: Template, cities: list[dict], city: dict) -> str:
     stat_tiles = "\n".join(f'          <div class="stat"><strong>{esc(value)}</strong><span>{esc(label)}</span></div>' for value, label in tiles)
     line_rows = "\n".join(
         f'            <tr><td>{line_badge(line["color"], line["name"])} '
-        f'{esc(MODE_NAMES.get(line["mode"], ""))}</td><td>{line["stations"]}</td><td>~{num(line["headway"])} min</td></tr>'
+        f'{esc(MODE_NAMES.get(line["mode"], ""))}</td><td>{line["stations"]}</td><td>~{line["headway"]:.1f} min</td></tr>'
         for line in stats["lines"]
     )
     # Single city: plain title, no city switcher.
