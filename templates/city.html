@@ -47,6 +47,7 @@ ${original_map}        <form id="searchForm" class="search" role="search" autoco
 
           <aside id="tripPanel" class="trip-panel" aria-live="polite" data-sheet="half">
             <div id="sheetHandle" class="sheet-handle" aria-hidden="true"><span></span></div>
+            <button id="panelCollapse" type="button" class="panel-collapse" aria-label="Hide panel">−</button>
             <p class="trip-eyebrow">Start</p>
             <p id="tripFrom" class="trip-from">Loading the network…</p>
             <div id="loadProgress" class="load-progress" hidden>
@@ -88,6 +89,7 @@ ${original_map}        <form id="searchForm" class="search" role="search" autoco
             </div>
           </aside>
 
+          <button id="panelExpand" type="button" class="panel-expand" aria-label="Show panel" hidden>☰</button>
           <div class="map-buttons">
             <button id="zoomIn" type="button" class="icon-button" aria-label="Zoom in">+</button>
             <button id="zoomOut" type="button" class="icon-button" aria-label="Zoom out">−</button>
