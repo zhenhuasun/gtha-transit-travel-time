@@ -201,14 +201,14 @@
               <p id="tripTo" class="trip-to"></p>
               <p id="tripDuration" class="trip-duration"></p>
               <ol id="tripSteps" class="trip-steps"></ol>
-              <div id="heatFrom" class="segmented" role="group" aria-label="Map origin point">
-                <span>Map from</span>
-                <button type="button" data-source="from" aria-pressed="true">the start</button>
-                <button type="button" data-source="to" aria-pressed="false">the destination</button>
+              <div id="heatFrom" class="segmented" role="group" aria-label="Travel time direction">
+                <span>Show</span>
+                <button type="button" data-source="from" aria-pressed="true">times from the start</button>
+                <button type="button" data-source="to" aria-pressed="false">times to the destination</button>
               </div>
             </div>
             <p id="tripHint" class="trip-hint">Click the map to place a destination.</p>
-            <button id="downloadCsv" type="button" class="link-button download-csv">Download travel times (CSV)</button>
+            <button id="downloadCsv" type="button" class="link-button download-csv">Download times from the start (CSV)</button>
             <div id="placesSection" class="places-section">
               <div id="placesRow" class="places-row" hidden></div>
               <div class="places-actions">
@@ -369,7 +369,7 @@
     </footer>
 
     <div id="toast" class="toast" role="status" hidden></div>
-    <script type="module" src="../app.js?v=44c5ada4"></script>
+    <script type="module" src="../app.js?v=d7998bf9"></script>
     <script>
       // Cache the 52 MB network data for instant repeat visits.
       if ("serviceWorker" in navigator) {
