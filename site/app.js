@@ -1887,7 +1887,8 @@ function runCompare() {
   }, 60);
 }
 
-$("comparePlaces").addEventListener("click", () => {
+const compareBtn = $("comparePlaces");
+if (compareBtn) compareBtn.addEventListener("click", () => {
   compareMode = true;
   comparePicks = [];
   $("compareRow").hidden = false;
