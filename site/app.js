@@ -1671,10 +1671,15 @@ function downloadCsv() {
     const timeStr = Number.isFinite(minutes) ? minutes.toFixed(1) : "";
     // Tidy data: one row per (station, agency ID). Multi-agency stops replicate
     // the row with each agency's stop ID; travel_time_min is identical.
+    // Each row's agency matches its ID's prefix (not all agencies).
     const ids = station.all_ids && station.all_ids.length ? station.all_ids : [station.id];
     ids.forEach((rawId) => {
       // Unified ID format: GO's raw IDs get the gotransit: prefix like everyone else.
       const sid = rawId.includes(":") ? rawId : `gotransit:${rawId}`;
+      // Agency for THIS id: prefix -> FEED_META (gotransit -> go).
+      const prefix = sid.split(":")[0];
+      const feedSlug = prefix === "gotransit" ? "go" : prefix;
+      const agencyName = FEED_META[feedSlug]?.agency || agencies.join("|");
       lines.push(
         [
           csvEscape(sid),
@@ -1683,7 +1688,7 @@ function downloadCsv() {
           lon.toFixed(5),
           station.rail ? "true" : "false",
           csvEscape(names.join("|")),
-          csvEscape(agencies.join("|")),
+          csvEscape(agencyName),
           timeStr,
         ].join(","),
       );
