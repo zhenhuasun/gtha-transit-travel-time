@@ -120,7 +120,7 @@ const app = {
   isochrones: [...DEFAULT_ISOCHRONES],
   heatFrom: "from", // the heat map starts from the start or the destination
   solution: null, // shortest paths from the start (panel, itinerary)
-  heatSolution: null, // shortest paths from the point the heat map starts from
+  heatSolution: null, // shortest paths for the heat map (from origin, or to destination in "to" mode)
   grid: null,
   heatCanvas: document.createElement("canvas"),
   drag: null,
@@ -361,6 +361,32 @@ function walkMinutes(meters) {
   return meters / app.data.meta.walkMetersPerMinute;
 }
 
+/** Reversed adjacency (CSR), built lazily on first "to destination" query. */
+function buildReverseGraph() {
+  const { graph } = app;
+  const n = graph.count;
+  const revOffsets = new Int32Array(n + 1);
+  for (let u = 0; u < n; u += 1) {
+    for (let e = graph.offsets[u]; e < graph.offsets[u + 1]; e += 1) {
+      revOffsets[graph.targets[e] + 1] += 1;
+    }
+  }
+  for (let i = 1; i <= n; i += 1) revOffsets[i] += revOffsets[i - 1];
+  const revTargets = new Uint16Array(revOffsets[n]);
+  const revWeights = new Float32Array(revOffsets[n]);
+  const cursor = Int32Array.from(revOffsets);
+  for (let u = 0; u < n; u += 1) {
+    for (let e = graph.offsets[u]; e < graph.offsets[u + 1]; e += 1) {
+      const v = graph.targets[e];
+      const idx = cursor[v];
+      cursor[v] = idx + 1;
+      revTargets[idx] = u;
+      revWeights[idx] = graph.weights[e];
+    }
+  }
+  return { offsets: revOffsets, targets: revTargets, weights: revWeights };
+}
+
 function stationUsable(index) {
   return app.includeBus || app.data.stations[index].rail;
 }
@@ -424,6 +450,72 @@ function solveFrom(point) {
     }
   }
   return { point, dist, prev, seedWalk, stationTime, stationBest };
+}
+
+/**
+ * Shortest times FROM each stop TO a point (reverse Dijkstra on the reversed
+ * graph). Mirrors solveFrom: dist[state] is the time from "boarded at state"
+ * to the point; stationTime adds the street access. Used for the "to
+ * destination" heat map and CSV export.
+ */
+function solveTo(point) {
+  const { graph, data } = app;
+  if (!app.revGraph) app.revGraph = buildReverseGraph();
+  const rev = app.revGraph;
+  const dist = new Float64Array(graph.count).fill(Infinity);
+  const prev = new Int32Array(graph.count).fill(-1);
+  const heap = new MinHeap();
+
+  // Same seeds as solveFrom: walk from the destination to nearby stops.
+  const seeds = data.stations
+    .map((station, index) => ({ index, walk: walkMinutes(hypot(point, station.point)) }))
+    .filter((seed) => stationUsable(seed.index))
+    .sort((a, b) => a.walk - b.walk)
+    .slice(0, data.meta.originStationCount * 4)
+    .map((seed) => ({ index: seed.index, walk: walkMinutes(walkMeters(point, data.stations[seed.index].point)) }))
+    .filter((seed) => Number.isFinite(seed.walk))
+    .sort((a, b) => a.walk - b.walk)
+    .slice(0, data.meta.originStationCount);
+
+  for (const seed of seeds) {
+    for (const state of data.stationStates[seed.index]) {
+      if (!app.includeBus && graph.isBus[state]) continue;
+      const walk = seed.walk + graph.access[state];
+      const time = walk + graph.wait[state];
+      if (time < dist[state]) {
+        dist[state] = time;
+        heap.push(time, state);
+      }
+    }
+  }
+
+  while (heap.size) {
+    const state = heap.pop();
+    const base = dist[state];
+    for (let e = rev.offsets[state]; e < rev.offsets[state + 1]; e += 1) {
+      const next = rev.targets[e];
+      if (!app.includeBus && graph.isBus[next]) continue;
+      const time = base + rev.weights[e];
+      if (time < dist[next]) {
+        dist[next] = time;
+        prev[next] = state;
+        heap.push(time, next);
+      }
+    }
+  }
+
+  const stationTime = new Float64Array(data.stations.length).fill(Infinity);
+  const stationBest = new Int32Array(data.stations.length).fill(-1);
+  // Time to get down to the platform at each stop, then ride to the point.
+  for (let state = 0; state < graph.count; state += 1) {
+    const station = graph.station[state];
+    const out = dist[state] + graph.access[state];
+    if (out < stationTime[station]) {
+      stationTime[station] = out;
+      stationBest[station] = state;
+    }
+  }
+  return { point, dist, prev, stationTime, stationBest, reverse: true };
 }
 
 /** Best time to any point: walking directly, or via the most favorable stop. */
@@ -1061,7 +1153,8 @@ function heatSource() {
 function recompute({ fast = false } = {}) {
   if (!app.from) return;
   app.solution = solveFrom(app.from.point);
-  app.heatSolution = heatSource() === app.from ? app.solution : solveFrom(app.to.point);
+  // "to" mode: times TO the destination (reverse Dijkstra), not from it.
+  app.heatSolution = heatSource() === app.from ? app.solution : solveTo(app.to.point);
   app.grid = computeGrid(app.heatSolution);
   paintHeat(app.grid, { fast });
   updatePanel();
@@ -1160,7 +1253,7 @@ function updatePanel() {
       return Math.min(byFoot, app.heatSolution.stationTime[index]) <= REACH_MINUTES;
     }).length;
     const percent = ((reachable / tram.length) * 100).toFixed(1);
-    const where = source === app.from ? "from this start" : "from this destination";
+    const where = source === app.from ? "from this start" : "to this destination";
     $("reach").textContent = `${percent}% of ${CITY.railStations} are within ${REACH_MINUTES} minutes ${where}.`;
   }
 }
@@ -1506,22 +1599,29 @@ function downloadCsv() {
   setTimeout(() => {
   // The export is deterministic: always bus-inclusive, regardless of the bus
   // toggle (which only controls what the map displays). The UI sets the start
-  // point; the data covers every stop.
+  // point; the data covers every stop. When the heat map is in "to destination"
+  // mode, the export is times TO the destination (reverse Dijkstra).
+  const toMode = app.heatFrom === "to" && app.to;
+  const anchor = toMode ? app.to : app.from;
   const wasBus = app.includeBus;
   let stationTime;
-  if (wasBus) {
+  app.includeBus = true;
+  if (toMode) {
+    stationTime = solveTo(anchor.point).stationTime;
+  } else if (wasBus) {
     stationTime = app.solution.stationTime;
   } else {
-    app.includeBus = true;
-    stationTime = solveFrom(app.from.point).stationTime;
-    app.includeBus = wasBus;
+    stationTime = solveFrom(anchor.point).stationTime;
   }
-  const { lat: fromLat, lon: fromLon } = toLatLon(app.from.point);
+  app.includeBus = wasBus;
+  const { lat: anchorLat, lon: anchorLon } = toLatLon(anchor.point);
   const ref = String(app.data.meta.referenceDate); // YYYYMMDD
   const refLabel = `${ref.slice(0, 4)}-${ref.slice(4, 6)}-${ref.slice(6, 8)}`;
 
   const lines = [
-    `# Travel times from: ${app.from.label} (${fromLat.toFixed(5)} ${fromLon.toFixed(5)})`,
+    toMode
+      ? `# Travel times to: ${anchor.label} (${anchorLat.toFixed(5)} ${anchorLon.toFixed(5)})`
+      : `# Travel times from: ${anchor.label} (${anchorLat.toFixed(5)} ${anchorLon.toFixed(5)})`,
     `# Reference: Thursday ${refLabel}; scheduled weekday departures 07:00-20:00; walking + waiting included`,
     `# travel_time_min: walk + all transit (train/subway/streetcar/bus); unit: minutes; empty = unreachable`,
     `# Data build: ${CITY.dataVersion}; generated ${new Date().toISOString().slice(0, 10)}`,
