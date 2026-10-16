@@ -1073,7 +1073,10 @@ function setFrom(point, label = null, { quiet = false, fast = false } = {}) {
   app.from = { point, label: label || describePlace(point) };
   app.originPulse = performance.now();
   // The user moved the origin themselves: they got the hint.
-  if (hintArmed && !$("firstHint").hidden) dismissHint();
+  if (hintArmed) {
+    const hint = $("firstHint");
+    if (hint && !hint.hidden) dismissHint();
+  }
   recompute({ fast });
   if (!quiet) syncUrl();
   return true;
@@ -1207,13 +1210,15 @@ function restoreFromUrl() {
   const params = new URLSearchParams(location.search);
   const defBus = CITY.defaultBus ?? false;
   app.includeBus = params.has("bus") ? params.get("bus") === "1" : defBus;
-  $("busToggle").checked = app.includeBus;
+  const busEl = $("busToggle");
+  if (busEl) busEl.checked = app.includeBus;
   try {
     app.colorblind = localStorage.getItem("gtha-transit.colorblind") === "1";
   } catch {
     app.colorblind = false;
   }
-  $("colorblindToggle").checked = app.colorblind;
+  const cbEl = $("colorblindToggle");
+  if (cbEl) cbEl.checked = app.colorblind;
   const defMax = CITY.defaultMaxMinutes ?? DEFAULT_MAX;
   const max = Number(params.get("max"));
   app.maxMinutes = max >= 20 && max <= 120 ? max : defMax;
@@ -1402,7 +1407,8 @@ $("busToggle").addEventListener("change", (event) => {
   syncUrl();
 });
 
-$("colorblindToggle").addEventListener("change", (event) => {
+const colorblindEl = $("colorblindToggle");
+if (colorblindEl) colorblindEl.addEventListener("change", (event) => {
   app.colorblind = event.target.checked;
   try {
     localStorage.setItem("gtha-transit.colorblind", app.colorblind ? "1" : "0");
@@ -1578,7 +1584,9 @@ const HINT_KEY = "gtha-transit.hintSeen";
 let hintArmed = false;
 
 function dismissHint() {
-  $("firstHint").hidden = true;
+  const hint = $("firstHint");
+  if (!hint) return;
+  hint.hidden = true;
   try {
     localStorage.setItem(HINT_KEY, "1");
   } catch {
@@ -1587,13 +1595,15 @@ function dismissHint() {
 }
 
 function maybeShowHint() {
+  const hint = $("firstHint");
+  if (!hint) return; // stale HTML without the hint element
   let seen = false;
   try {
     seen = !!localStorage.getItem(HINT_KEY);
   } catch {
     seen = true;
   }
-  $("firstHint").hidden = seen;
+  hint.hidden = seen;
 }
 
 $("firstHintClose").addEventListener("click", dismissHint);
@@ -1628,6 +1638,7 @@ function placeEmoji(name) {
 
 function renderPlaces() {
   const row = $("placesRow");
+  if (!row) return; // stale HTML without the places section
   const places = loadPlaces();
   row.hidden = places.length === 0;
   row.replaceChildren(
@@ -1721,7 +1732,9 @@ let compareMode = false;
 let comparePicks = [];
 
 function updateCompareButton() {
-  $("comparePlaces").hidden = loadPlaces().length < 2 && !compareMode;
+  const btn = $("comparePlaces");
+  if (!btn) return;
+  btn.hidden = loadPlaces().length < 2 && !compareMode;
 }
 
 function exitCompare() {
