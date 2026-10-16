@@ -7,6 +7,9 @@
     <meta name="description" content="subway and tram travel-time map of Toronto: pick a starting point and the whole city is colored by how long it takes to get there (TTC network)." />
     <link rel="canonical" href="https://zhenhuasun.github.io/ttc-travel-time/toronto/" />
     <meta name="theme-color" content="#3aa70b" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="../favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
@@ -175,6 +178,10 @@
           </p>
         </noscript>
         <div id="mapStage" class="map-stage">
+          <div id="firstHint" class="first-hint" hidden>
+            <span>👆 Drag the green dot to explore from anywhere</span>
+            <button id="firstHintClose" type="button" aria-label="Dismiss">×</button>
+          </div>
           <canvas id="mapCanvas"></canvas>
 
           <aside id="tripPanel" class="trip-panel" aria-live="polite">
@@ -202,7 +209,15 @@
             <button id="downloadCsv" type="button" class="link-button download-csv">Download travel times (CSV)</button>
             <div id="placesSection" class="places-section">
               <div id="placesRow" class="places-row" hidden></div>
-              <button id="savePlace" type="button" class="link-button">★ Save this place</button>
+              <div class="places-actions">
+                <button id="savePlace" type="button" class="link-button">★ Save this place</button>
+                <button id="comparePlaces" type="button" class="link-button" hidden>⇄ Compare</button>
+              </div>
+              <div id="compareRow" class="compare-row" hidden>
+                <p class="compare-hint">Tap two places to compare travel time to the destination.</p>
+                <div id="compareResult" class="compare-result" hidden></div>
+                <button id="compareCancel" type="button" class="link-button">× Cancel</button>
+              </div>
               <div id="placeNameRow" class="place-name-row" hidden>
                 <input id="placeNameInput" type="text" maxlength="24" placeholder="Name this place" aria-label="Place name" />
                 <button id="placeNameOk" type="button" class="mini-button" aria-label="Save place">✓</button>
@@ -241,6 +256,9 @@
             <label class="control-label" for="maxRange">Scale</label>
             <input id="maxRange" type="range" min="20" max="120" step="5" value="45" />
             <output id="maxValue" for="maxRange">45 min</output>
+          </div>
+          <div class="control-group">
+            <label class="pill-toggle"><input id="colorblindToggle" type="checkbox" /> Colorblind-safe</label>
           </div>
           <div class="control-group actions">
             <button id="locate" type="button" class="button">My location</button>
@@ -325,7 +343,7 @@
     </footer>
 
     <div id="toast" class="toast" role="status" hidden></div>
-    <script type="module" src="../app.js?v=e7a03c1f"></script>
+    <script type="module" src="../app.js?v=aecfbc8b"></script>
     <script>
       // Cache the network data for instant repeat visits.
       if ("serviceWorker" in navigator) {
