@@ -40,6 +40,18 @@ const PALETTE = [
   [0.75, [244, 182, 112]],
   [1, [226, 120, 120]],
 ];
+// Viridis-like: readable with red-green color blindness.
+const PALETTE_COLORBLIND = [
+  [0, [68, 1, 84]],
+  [0.25, [59, 82, 139]],
+  [0.5, [33, 145, 140]],
+  [0.75, [94, 201, 98]],
+  [1, [253, 231, 37]],
+];
+
+function activePalette() {
+  return app.colorblind ? PALETTE_COLORBLIND : PALETTE;
+}
 // Beyond the max, the color fades out gradually to reveal the background.
 const BEYOND_FADE = 0.15;
 const HEAT_ALPHA = 0.78;
@@ -103,6 +115,7 @@ const app = {
   from: null, // { point, label }
   to: null, // { point, label }
   includeBus: CITY.defaultBus ?? false,
+  colorblind: false,
   maxMinutes: CITY.defaultMaxMinutes ?? DEFAULT_MAX,
   isochrones: [...DEFAULT_ISOCHRONES],
   heatFrom: "from", // the heat map starts from the start or the destination
@@ -117,6 +130,9 @@ const app = {
 
 // --- Small utility functions ------------------------------------------
 
+const esc = (s) =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const hypot = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -130,15 +146,16 @@ function formatMinutes(minutes) {
 }
 
 function paletteColor(t) {
-  for (let i = 1; i < PALETTE.length; i += 1) {
-    const [stop, color] = PALETTE[i];
+  const palette = activePalette();
+  for (let i = 1; i < palette.length; i += 1) {
+    const [stop, color] = palette[i];
     if (t <= stop) {
-      const [prevStop, prevColor] = PALETTE[i - 1];
+      const [prevStop, prevColor] = palette[i - 1];
       const mix = (t - prevStop) / (stop - prevStop);
       return prevColor.map((channel, c) => Math.round(channel + (color[c] - channel) * mix));
     }
   }
-  return PALETTE[PALETTE.length - 1][1];
+  return palette[palette.length - 1][1];
 }
 
 function metersPerDegree() {
@@ -1003,6 +1020,8 @@ function setFrom(point, label = null, { quiet = false, fast = false } = {}) {
   if (!isOnLand(point)) return false;
   app.from = { point, label: label || describePlace(point) };
   app.originPulse = performance.now();
+  // The user moved the origin themselves: they got the hint.
+  if (hintArmed && !$("firstHint").hidden) dismissHint();
   recompute({ fast });
   if (!quiet) syncUrl();
   return true;
@@ -1018,6 +1037,8 @@ function setTo(point, label = null, { quiet = false, fast = false } = {}) {
     requestRender();
   }
   if (!quiet) syncUrl();
+  // A new destination invalidates an in-progress place comparison.
+  if (compareMode && comparePicks.length === 2) runCompare();
   return true;
 }
 
@@ -1025,6 +1046,7 @@ function removeTo() {
   app.to = null;
   setHeatFrom("from");
   syncUrl();
+  if (compareMode) runCompare();
 }
 
 function setHeatFrom(source) {
@@ -1097,7 +1119,7 @@ function contrastText(hex) {
 }
 
 function updateLegend() {
-  const stops = PALETTE.map(([t, [r, g, b]]) => `rgb(${r}, ${g}, ${b}) ${Math.round(t * 100)}%`);
+  const stops = activePalette().map(([t, [r, g, b]]) => `rgb(${r}, ${g}, ${b}) ${Math.round(t * 100)}%`);
   $("legendBar").style.background = `linear-gradient(90deg, ${stops.join(", ")})`;
   $("legendMid").textContent = `${Math.round(app.maxMinutes / 2)} min`;
   $("legendMax").textContent = `${app.maxMinutes} min`;
@@ -1134,6 +1156,12 @@ function restoreFromUrl() {
   const defBus = CITY.defaultBus ?? false;
   app.includeBus = params.has("bus") ? params.get("bus") === "1" : defBus;
   $("busToggle").checked = app.includeBus;
+  try {
+    app.colorblind = localStorage.getItem("gtha-transit.colorblind") === "1";
+  } catch {
+    app.colorblind = false;
+  }
+  $("colorblindToggle").checked = app.colorblind;
   const defMax = CITY.defaultMaxMinutes ?? DEFAULT_MAX;
   const max = Number(params.get("max"));
   app.maxMinutes = max >= 20 && max <= 120 ? max : defMax;
@@ -1322,6 +1350,18 @@ $("busToggle").addEventListener("change", (event) => {
   syncUrl();
 });
 
+$("colorblindToggle").addEventListener("change", (event) => {
+  app.colorblind = event.target.checked;
+  try {
+    localStorage.setItem("gtha-transit.colorblind", app.colorblind ? "1" : "0");
+  } catch {
+    /* private mode */
+  }
+  updateLegend();
+  if (app.grid) paintHeat(app.grid);
+  requestRender();
+});
+
 $("isoToggles").addEventListener("change", () => {
   app.isochrones = [...$("isoToggles").querySelectorAll("input:checked")].map((input) => Number(input.value));
   requestRender();
@@ -1460,7 +1500,31 @@ function downloadCsv() {
 
 $("downloadCsv").addEventListener("click", downloadCsv);
 
-// --- My places: named origins in localStorage, no account -------------------
+// --- First-run hint -----------------------------------------------------------
+
+const HINT_KEY = "gtha-transit.hintSeen";
+let hintArmed = false;
+
+function dismissHint() {
+  $("firstHint").hidden = true;
+  try {
+    localStorage.setItem(HINT_KEY, "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+function maybeShowHint() {
+  let seen = false;
+  try {
+    seen = !!localStorage.getItem(HINT_KEY);
+  } catch {
+    seen = true;
+  }
+  $("firstHint").hidden = seen;
+}
+
+$("firstHintClose").addEventListener("click", dismissHint);
 
 const PLACES_KEY = "gtha-transit.places";
 const PLACES_MAX = 8;
@@ -1497,13 +1561,25 @@ function renderPlaces() {
   row.replaceChildren(
     ...places.map((place, i) => {
       const chip = document.createElement("span");
-      chip.className = "place-chip";
+      chip.className = "place-chip" + (comparePicks.includes(i) ? " picked" : "");
       const go = document.createElement("button");
       go.type = "button";
       go.className = "chip-go";
       go.textContent = `${placeEmoji(place.name)} ${place.name}`;
-      go.title = "Set as start";
+      go.title = compareMode ? "Select for comparison" : "Set as start";
       go.addEventListener("click", () => {
+        if (compareMode) {
+          if (comparePicks.includes(i)) {
+            comparePicks = comparePicks.filter((j) => j !== i);
+          } else if (comparePicks.length < 2) {
+            comparePicks = [...comparePicks, i];
+          } else {
+            comparePicks = [comparePicks[1], i];
+          }
+          renderPlaces();
+          runCompare();
+          return;
+        }
         const point = toWorld(place.lat, place.lon);
         if (setFrom(point, place.name)) flyTo(point);
       });
@@ -1513,13 +1589,19 @@ function renderPlaces() {
       del.textContent = "×";
       del.setAttribute("aria-label", `Remove ${place.name}`);
       del.addEventListener("click", () => {
-        storePlaces(loadPlaces().filter((_, j) => j !== i));
+        const next = loadPlaces().filter((_, j) => j !== i);
+        storePlaces(next);
+        // Keep picks valid after a removal.
+        comparePicks = comparePicks.filter((j) => j !== i).map((j) => (j > i ? j - 1 : j));
+        if (compareMode) runCompare();
         renderPlaces();
+        updateCompareButton();
       });
       chip.append(go, del);
       return chip;
     }),
   );
+  updateCompareButton();
 }
 
 function confirmSavePlace() {
@@ -1560,6 +1642,74 @@ $("placeNameInput").addEventListener("keydown", (event) => {
   if (event.key === "Enter") confirmSavePlace();
   if (event.key === "Escape") $("placeNameRow").hidden = true;
 });
+
+// --- Compare two places ------------------------------------------------------
+
+let compareMode = false;
+let comparePicks = [];
+
+function updateCompareButton() {
+  $("comparePlaces").hidden = loadPlaces().length < 2 && !compareMode;
+}
+
+function exitCompare() {
+  compareMode = false;
+  comparePicks = [];
+  $("compareRow").hidden = true;
+  $("compareResult").hidden = true;
+  updateCompareButton();
+  renderPlaces();
+}
+
+function runCompare() {
+  const places = loadPlaces();
+  const [a, b] = comparePicks.map((i) => places[i]);
+  const res = $("compareResult");
+  if (!a || !b) {
+    res.hidden = true;
+    return;
+  }
+  res.hidden = false;
+  if (!app.to) {
+    res.innerHTML = '<p class="compare-hint">Click the map to set a destination first (e.g. work).</p>';
+    return;
+  }
+  res.innerHTML = '<p class="compare-computing">Computing…</p>';
+  // Let the UI paint before the blocking Dijkstra runs.
+  setTimeout(() => {
+    // The user may have left compare mode while computing.
+    if (!compareMode || comparePicks.length !== 2) return;
+    const times = [a, b].map((p) => {
+      const sol = solveFrom(toWorld(p.lat, p.lon));
+      return travelTo(sol, app.to.point).minutes;
+    });
+    const fmt = (m) => (Number.isFinite(m) ? formatMinutes(m) : "—");
+    const [ta, tb] = times;
+    let winner = "";
+    if (Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) >= 1) {
+      const [win, diff] = ta < tb ? [a, tb - ta] : [b, ta - tb];
+      winner = `<p class="compare-winner">${placeEmoji(win.name)} ${esc(win.name)} is ${formatMinutes(diff)} faster.</p>`;
+    } else if (Number.isFinite(ta) && Number.isFinite(tb)) {
+      winner = '<p class="compare-winner">About the same.</p>';
+    }
+    const dest = esc(app.to.label || "destination");
+    res.innerHTML =
+      `<p>${placeEmoji(a.name)} ${esc(a.name)} → ${dest}: <strong>${fmt(ta)}</strong></p>` +
+      `<p>${placeEmoji(b.name)} ${esc(b.name)} → ${dest}: <strong>${fmt(tb)}</strong></p>` +
+      winner;
+  }, 60);
+}
+
+$("comparePlaces").addEventListener("click", () => {
+  compareMode = true;
+  comparePicks = [];
+  $("compareRow").hidden = false;
+  $("compareResult").hidden = true;
+  updateCompareButton();
+  renderPlaces();
+});
+
+$("compareCancel").addEventListener("click", exitCompare);
 
 // --- Address search (Base Adresse Nationale) ----------------------------
 
@@ -1741,6 +1891,8 @@ async function init() {
   resize();
   restoreFromUrl();
   renderPlaces();
+  maybeShowHint();
+  hintArmed = true;
   new ResizeObserver(resize).observe(canvas);
 }
 
