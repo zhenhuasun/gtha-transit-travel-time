@@ -2252,19 +2252,20 @@ function startOnboardingStep1() {
   const canvas = $("map");
   const rect = canvas.getBoundingClientRect();
   const dotHl = document.createElement("div");
-  dotHl.className = "onboarding-dot-highlight onboarding-highlight";
-  dotHl.style.cssText = `position:fixed;left:${rect.left + sx - 20}px;top:${rect.top + sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;`;
+  dotHl.className = "onboarding-dot-highlight";
+  dotHl.style.cssText = `position:fixed;left:${rect.left + sx - 20}px;top:${rect.top + sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);`;
   document.body.appendChild(dotHl);
 
-  // Tooltip near search
+  // Tooltip near search (centered, guaranteed visible)
   const srect = searchForm.getBoundingClientRect();
+  const tipX = Math.max(12, Math.min(srect.left, window.innerWidth - 300));
   const tip = showOnboardingTooltip(
     `<p><strong>Set your start.</strong> Drag the green dot on the map, or search for an address.</p>
      <div class="onboarding-actions">
        <button type="button" data-act="keep">Keep Union Station</button>
        <button type="button" data-act="skip">Skip tour</button>
      </div>`,
-    srect.left, srect.bottom + 12
+    tipX, srect.bottom + 12
   );
 
   const cleanupFns = [];
@@ -2283,13 +2284,15 @@ function startOnboardingStep1() {
   searchForm.addEventListener("submit", onSearch, { once: true });
   cleanupFns.push(() => searchForm.removeEventListener("submit", onSearch));
 
-  // Marker drag completes step 1 (listen for drag end on canvas)
-  const onPointerUp = () => {
-    // If from point changed, user dragged it
-    setTimeout(() => done(true), 100);
-  };
-  // Simplified: any pointerup on map during step 1 advances (user interacted with dot)
-  // We check if it was a drag by seeing if from moved - for now, just advance on pointerup after drag
+  // Marker drag completes step 1: watch for app.from.point changing
+  const origPoint = [...app.from.point];
+  const checkDrag = setInterval(() => {
+    if (app.from.point[0] !== origPoint[0] || app.from.point[1] !== origPoint[1]) {
+      clearInterval(checkDrag);
+      done(true);
+    }
+  }, 300);
+  cleanupFns.push(() => clearInterval(checkDrag));
   onboardingState = { cleanup: () => cleanupFns.forEach((fn) => fn()) };
 }
 
