@@ -59,6 +59,35 @@ const COLORS = {
   to: "#111111",
 };
 
+// Feed manifest for the downloadable CSV (GTFS "version" = service window).
+// Refetch the trimmed zips' calendar.txt/calendar_dates.txt and refresh these
+// dates whenever the feeds are rebuilt.
+const FEED_META = {
+  go: { agency: "GO Transit", serviceStart: "2026-10-08", serviceEnd: "2026-11-27" },
+  up: { agency: "UP Express", serviceStart: "2026-10-08", serviceEnd: "2026-12-29" },
+  ttc: { agency: "TTC", serviceStart: "2026-09-30", serviceEnd: "2026-10-31" },
+  miway: { agency: "MiWay", serviceStart: "2026-10-08", serviceEnd: "2026-12-20" },
+  yrt: { agency: "York Region Transit", serviceStart: "2026-09-06", serviceEnd: "2026-10-31" },
+  brampton: { agency: "Brampton Transit", serviceStart: "2026-10-08", serviceEnd: "2026-11-01" },
+  drt: { agency: "Durham Region Transit", serviceStart: "2026-09-08", serviceEnd: "2026-11-29" },
+  oakville: { agency: "Oakville Transit", serviceStart: "2026-09-06", serviceEnd: "2026-10-31" },
+  burlington: { agency: "Burlington Transit", serviceStart: "2026-09-06", serviceEnd: "2026-10-31" },
+  hsr: { agency: "Hamilton Street Railway", serviceStart: "2026-09-06", serviceEnd: "2026-12-26" },
+  milton: { agency: "Milton Transit", serviceStart: "2026-10-09", serviceEnd: "2026-12-29" },
+  barrie: { agency: "Barrie Transit", serviceStart: "2026-10-10", serviceEnd: "2026-12-26" },
+  guelph: { agency: "Guelph Transit", serviceStart: "2026-09-06", serviceEnd: "2027-01-02" },
+  stratford: { agency: "Stratford Transit", serviceStart: "2026-10-09", serviceEnd: "2026-12-29" },
+  niagara: { agency: "Niagara Region Transit", serviceStart: "2026-10-11", serviceEnd: "2026-11-28" },
+  grtbus: { agency: "Grand River Transit", serviceStart: "2026-10-08", serviceEnd: "2026-12-20" },
+  grtlrt: { agency: "Grand River Transit", serviceStart: "2026-10-08", serviceEnd: "2026-12-29" },
+};
+
+/** Feed slug for a route id ("ttc:501" -> "ttc"; unprefixed -> "go"). */
+function feedOf(routeId) {
+  const i = routeId.indexOf(":");
+  return i < 0 ? "go" : routeId.slice(0, i);
+}
+
 const $ = (id) => document.getElementById(id);
 const canvas = $("mapCanvas");
 const ctx = canvas.getContext("2d");
@@ -1125,6 +1154,15 @@ function restoreFromUrl() {
   }
   const to = parsePair(params.get("to"));
   if (to && setTo(to, null, { quiet: true }) && params.get("carte") === "arrivee") setHeatFrom("to");
+
+  // Default framing: twice the fit-view zoom (≈ two "+" presses), centered on
+  // the start point so "where am I" is obvious at first glance.
+  if (app.from) {
+    app.view.cx = app.from.point[0];
+    app.view.cy = app.from.point[1];
+    app.view.scale = app.view.fitScale * 2;
+    requestRender();
+  }
 }
 
 function toast(message) {
@@ -1354,6 +1392,73 @@ $("share").addEventListener("click", async () => {
     toast(url);
   }
 });
+
+// --- CSV download: travel times from the start to every station ---------
+
+function csvEscape(value) {
+  const s = String(value ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadCsv() {
+  if (!app.solution || !app.from) {
+    toast("Wait for the network to load first.");
+    return;
+  }
+  const { stationTime } = app.solution;
+  const { lat: fromLat, lon: fromLon } = toLatLon(app.from.point);
+  const ref = String(app.data.meta.referenceDate); // YYYYMMDD
+  const refLabel = `${ref.slice(0, 4)}-${ref.slice(4, 6)}-${ref.slice(6, 8)}`;
+
+  const lines = [
+    `# Travel times from: ${app.from.label} (${fromLat.toFixed(5)}, ${fromLon.toFixed(5)})`,
+    `# Reference: Thursday ${refLabel}; scheduled weekday departures 07:00-20:00; walking + waiting included`,
+    `# Bus included: ${app.includeBus ? "yes" : "no"}; unit: minutes; empty travel_time_min = unreachable`,
+    `# Data build: ${CITY.dataVersion}; generated ${new Date().toISOString().slice(0, 10)}`,
+    `# GTFS feed service windows (the "version" of each schedule):`,
+    ...Object.values(FEED_META).map((f, i) => {
+      const slug = Object.keys(FEED_META)[i];
+      return `# - ${f.agency} (${slug}): ${f.serviceStart} to ${f.serviceEnd}`;
+    }),
+    "station_id,station_name,lat,lon,rail,routes,agency,gtfs_service_start,gtfs_service_end,travel_time_min",
+  ];
+
+  app.data.stations.forEach((station, index) => {
+    const { lat, lon } = toLatLon(station.point);
+    const routeIds = station.routes || [];
+    const agencies = [...new Set(routeIds.map((r) => FEED_META[feedOf(String(r))]?.agency).filter(Boolean))];
+    const starts = routeIds.map((r) => FEED_META[feedOf(String(r))]?.serviceStart).filter(Boolean);
+    const ends = routeIds.map((r) => FEED_META[feedOf(String(r))]?.serviceEnd).filter(Boolean);
+    const names = [...new Set(routeIds.map((r) => app.data.routeInfo[String(r)]?.name).filter(Boolean))];
+    const minutes = stationTime[index];
+    lines.push(
+      [
+        csvEscape(station.id),
+        csvEscape(station.name),
+        lat.toFixed(5),
+        lon.toFixed(5),
+        station.rail ? "true" : "false",
+        csvEscape(names.join("|")),
+        csvEscape(agencies.join("|")),
+        starts.length ? starts.sort()[0] : "",
+        ends.length ? ends.sort().pop() : "",
+        Number.isFinite(minutes) ? minutes.toFixed(1) : "",
+      ].join(","),
+    );
+  });
+
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${CITY.slug}-travel-times-${refLabel}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast("CSV downloaded.");
+}
+
+$("downloadCsv").addEventListener("click", downloadCsv);
 
 // --- Address search (Base Adresse Nationale) ----------------------------
 
