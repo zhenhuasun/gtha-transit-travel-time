@@ -635,6 +635,97 @@ h1 {
   margin-top: 6px;
 }
 
+.places-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.places-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.places-row[hidden] {
+  display: none;
+}
+
+.place-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+
+.place-chip:hover {
+  border-color: var(--ttc-red);
+}
+
+.chip-go {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.chip-del {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.chip-del:hover {
+  color: var(--ink);
+}
+
+.place-name-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.place-name-row[hidden] {
+  display: none;
+}
+
+.place-name-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.mini-button {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mini-button:hover {
+  border-color: var(--ttc-red);
+}
+
 .segmented {
   display: flex;
   align-items: center;

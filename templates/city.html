@@ -64,6 +64,15 @@ ${original_map}        <form id="searchForm" class="search" role="search" autoco
             </div>
             <p id="tripHint" class="trip-hint">Click the map to place a destination.</p>
             <button id="downloadCsv" type="button" class="link-button download-csv">Download travel times (CSV)</button>
+            <div id="placesSection" class="places-section">
+              <div id="placesRow" class="places-row" hidden></div>
+              <button id="savePlace" type="button" class="link-button">★ Save this place</button>
+              <div id="placeNameRow" class="place-name-row" hidden>
+                <input id="placeNameInput" type="text" maxlength="24" placeholder="Name this place" aria-label="Place name" />
+                <button id="placeNameOk" type="button" class="mini-button" aria-label="Save place">✓</button>
+                <button id="placeNameCancel" type="button" class="mini-button" aria-label="Cancel">✕</button>
+              </div>
+            </div>
           </aside>
 
           <div class="map-buttons">
