@@ -989,7 +989,7 @@ h1 {
   /* Mobile: legend top-left, clear of the bottom sheet. Must come after the
      base .legend rule (same specificity, later wins). */
   .legend {
-    top: 64px;
+    top: 14px;
     left: 14px;
     right: auto;
     bottom: auto;
