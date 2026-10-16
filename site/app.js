@@ -1521,7 +1521,7 @@ function downloadCsv() {
   const refLabel = `${ref.slice(0, 4)}-${ref.slice(4, 6)}-${ref.slice(6, 8)}`;
 
   const lines = [
-    `# Travel times from: ${app.from.label} (${fromLat.toFixed(5)}, ${fromLon.toFixed(5)})`,
+    `# Travel times from: ${app.from.label} (${fromLat.toFixed(5)} ${fromLon.toFixed(5)})`,
     `# Reference: Thursday ${refLabel}; scheduled weekday departures 07:00-20:00; walking + waiting included`,
     `# travel_time_min: walk + all transit (train/subway/streetcar/bus); unit: minutes; empty = unreachable`,
     `# Data build: ${CITY.dataVersion}; generated ${new Date().toISOString().slice(0, 10)}`,
