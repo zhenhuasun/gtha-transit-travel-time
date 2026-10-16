@@ -945,9 +945,9 @@ h1 {
 
 .segmented {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
