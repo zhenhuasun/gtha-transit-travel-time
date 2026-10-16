@@ -1159,11 +1159,9 @@ function updatePanel() {
       const byFoot = walkMinutes(hypot(source.point, station.point));
       return Math.min(byFoot, app.heatSolution.stationTime[index]) <= REACH_MINUTES;
     }).length;
-    const percent = Math.round((reachable / tram.length) * 100);
+    const percent = ((reachable / tram.length) * 100).toFixed(1);
     const where = source === app.from ? "from this start" : "from this destination";
-    $("reach").textContent = `${percent}% of ${CITY.railStations} are within ${REACH_MINUTES} minutes ${where}${
-      app.includeBus ? ` (${CITY.railNoun} + ${CITY.busNoun})` : ""
-    }.`;
+    $("reach").textContent = `${percent}% of ${CITY.railStations} are within ${REACH_MINUTES} minutes ${where}.`;
   }
 }
 
@@ -1796,6 +1794,23 @@ $("comparePlaces").addEventListener("click", () => {
 
 $("compareCancel").addEventListener("click", exitCompare);
 
+// --- Panel collapse (desktop) -------------------------------------------------
+
+function initPanelCollapse() {
+  const panel = $("tripPanel");
+  const collapse = $("panelCollapse");
+  const expand = $("panelExpand");
+  if (!panel || !collapse || !expand) return;
+  collapse.addEventListener("click", () => {
+    panel.hidden = true;
+    expand.hidden = false;
+  });
+  expand.addEventListener("click", () => {
+    panel.hidden = false;
+    expand.hidden = true;
+  });
+}
+
 // --- Mobile bottom sheet (peek / half / full) --------------------------------
 
 const SHEET_STATES = ["peek", "half", "full"];
@@ -2045,6 +2060,7 @@ async function init() {
   maybeShowHint();
   hintArmed = true;
   initSheet();
+  initPanelCollapse();
   new ResizeObserver(resize).observe(canvas);
 }
 
