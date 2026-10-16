@@ -344,6 +344,7 @@ def render_city(template: Template, cities: list[dict], city: dict) -> str:
         "slug": city["slug"],
         "name": city["name"],
         "dataVersion": short_hash(SITE / "data" / f"{city['slug']}.json"),
+        "dataBytes": (SITE / "data" / f"{city['slug']}.json").stat().st_size,
         "defaultFrom": city["defaultFrom"],
         "defaultBus": city["defaultBus"],
         "defaultMaxMinutes": city["defaultMaxMinutes"],
