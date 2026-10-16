@@ -1497,7 +1497,23 @@ function downloadCsv() {
     toast("Wait for the network to load first.");
     return;
   }
-  const { stationTime } = app.solution;
+  toast("Preparing download…");
+  // Let the toast paint before the blocking Dijkstra runs.
+  setTimeout(() => {
+  // The export is deterministic: both columns are always computed, regardless
+  // of the bus toggle (which only controls what the map displays).
+  const wasBus = app.includeBus;
+  let railTimes, transitTimes;
+  if (wasBus) {
+    transitTimes = app.solution.stationTime;
+    app.includeBus = false;
+    railTimes = solveFrom(app.from.point).stationTime;
+  } else {
+    railTimes = app.solution.stationTime;
+    app.includeBus = true;
+    transitTimes = solveFrom(app.from.point).stationTime;
+  }
+  app.includeBus = wasBus;
   const { lat: fromLat, lon: fromLon } = toLatLon(app.from.point);
   const ref = String(app.data.meta.referenceDate); // YYYYMMDD
   const refLabel = `${ref.slice(0, 4)}-${ref.slice(4, 6)}-${ref.slice(6, 8)}`;
@@ -1505,14 +1521,15 @@ function downloadCsv() {
   const lines = [
     `# Travel times from: ${app.from.label} (${fromLat.toFixed(5)}, ${fromLon.toFixed(5)})`,
     `# Reference: Thursday ${refLabel}; scheduled weekday departures 07:00-20:00; walking + waiting included`,
-    `# Bus included: ${app.includeBus ? "yes" : "no"}; unit: minutes; empty travel_time_min = unreachable`,
+    `# travel_time_rail_min: walk + train/subway/streetcar only; travel_time_transit_min: walk + all transit incl. bus`,
+    `# Unit: minutes; empty = unreachable`,
     `# Data build: ${CITY.dataVersion}; generated ${new Date().toISOString().slice(0, 10)}`,
     `# GTFS feed service windows (the "version" of each schedule):`,
     ...Object.values(FEED_META).map((f, i) => {
       const slug = Object.keys(FEED_META)[i];
       return `# - ${f.agency} (${slug}): ${f.serviceStart} to ${f.serviceEnd}`;
     }),
-    "station_id,station_name,lat,lon,rail,routes,agency,gtfs_service_start,gtfs_service_end,travel_time_min",
+    "station_id,station_name,lat,lon,rail,routes,agency,gtfs_service_start,gtfs_service_end,travel_time_rail_min,travel_time_transit_min",
   ];
 
   app.data.stations.forEach((station, index) => {
@@ -1522,7 +1539,8 @@ function downloadCsv() {
     const starts = routeIds.map((r) => FEED_META[feedOf(String(r))]?.serviceStart).filter(Boolean);
     const ends = routeIds.map((r) => FEED_META[feedOf(String(r))]?.serviceEnd).filter(Boolean);
     const names = [...new Set(routeIds.map((r) => app.data.routeInfo[String(r)]?.name).filter(Boolean))];
-    const minutes = stationTime[index];
+    const railMin = railTimes[index];
+    const transitMin = transitTimes[index];
     lines.push(
       [
         csvEscape(station.id),
@@ -1534,7 +1552,8 @@ function downloadCsv() {
         csvEscape(agencies.join("|")),
         starts.length ? starts.sort()[0] : "",
         ends.length ? ends.sort().pop() : "",
-        Number.isFinite(minutes) ? minutes.toFixed(1) : "",
+        Number.isFinite(railMin) ? railMin.toFixed(1) : "",
+        Number.isFinite(transitMin) ? transitMin.toFixed(1) : "",
       ].join(","),
     );
   });
@@ -1548,6 +1567,7 @@ function downloadCsv() {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   toast("CSV downloaded.");
+  }, 60);
 }
 
 $("downloadCsv").addEventListener("click", downloadCsv);
@@ -1763,6 +1783,54 @@ $("comparePlaces").addEventListener("click", () => {
 
 $("compareCancel").addEventListener("click", exitCompare);
 
+// --- Mobile bottom sheet (peek / half / full) --------------------------------
+
+const SHEET_STATES = ["peek", "half", "full"];
+
+function setSheet(state) {
+  $("tripPanel").dataset.sheet = state;
+}
+
+function initSheet() {
+  const panel = $("tripPanel");
+  const handle = $("sheetHandle");
+  // Tap the handle to cycle states.
+  handle.addEventListener("click", () => {
+    const next = SHEET_STATES[(SHEET_STATES.indexOf(panel.dataset.sheet) + 1) % SHEET_STATES.length];
+    setSheet(next);
+  });
+  // Drag the handle to resize, snap to the nearest state on release.
+  let startY = null;
+  let startH = 0;
+  handle.addEventListener("touchstart", (e) => {
+    startY = e.touches[0].clientY;
+    startH = panel.getBoundingClientRect().height;
+    panel.style.transition = "none";
+  }, { passive: true });
+  handle.addEventListener("touchmove", (e) => {
+    if (startY === null) return;
+    const dy = startY - e.touches[0].clientY; // up = taller
+    const maxH = panel.parentElement.getBoundingClientRect().height - 56;
+    panel.style.height = `${Math.max(64, Math.min(maxH, startH + dy))}px`;
+  }, { passive: true });
+  handle.addEventListener("touchend", () => {
+    if (startY === null) return;
+    startY = null;
+    panel.style.transition = "";
+    panel.style.height = "";
+    // Snap to the nearest state by current height.
+    const h = panel.getBoundingClientRect().height;
+    const maxH = panel.parentElement.getBoundingClientRect().height - 56;
+    const candidates = [
+      ["peek", 64],
+      ["half", Math.min(maxH * 0.42, 340)],
+      ["full", maxH],
+    ];
+    candidates.sort((a, b) => Math.abs(h - a[1]) - Math.abs(h - b[1]));
+    setSheet(candidates[0][0]);
+  });
+}
+
 // --- Address search (Base Adresse Nationale) ----------------------------
 
 const searchInput = $("searchInput");
@@ -1962,6 +2030,7 @@ async function init() {
   renderPlaces();
   maybeShowHint();
   hintArmed = true;
+  initSheet();
   new ResizeObserver(resize).observe(canvas);
 }
 
