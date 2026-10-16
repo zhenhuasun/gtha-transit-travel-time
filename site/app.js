@@ -3,7 +3,7 @@
 // Travel-time map by tram (and bus) on the TaM network.
 
 const CITY = JSON.parse(document.getElementById("city-config").textContent);
-const DATA_URL = new URL(`./data/${CITY.slug}.json?v=${CITY.dataVersion}`, import.meta.url);
+const DATA_URL = new URL(`./data/${CITY.slug}.bin?v=${CITY.dataVersion}`, import.meta.url);
 // Base Adresse Nationale in France; Photon (OSM) elsewhere, limited to the city's area.
 const GEOCODER_URL = CITY.geocoder === "photon" ? "https://photon.komoot.io/api/" : "https://api-adresse.data.gouv.fr/search/";
 
@@ -189,6 +189,38 @@ function pointInPolygon(point, polygon) {
   return pointInRing(point, polygon[0]) && !polygon.slice(1).some((hole) => pointInRing(point, hole));
 }
 
+/** Ray casting over the flat binary water layout (see tools/build_bin.py). */
+function pointInFlatRing(x, y, start, end, coords) {
+  let inside = false;
+  for (let i = start, j = end - 1; i < end; j = i, i += 1) {
+    const xi = coords[2 * i];
+    const yi = coords[2 * i + 1];
+    const xj = coords[2 * j];
+    const yj = coords[2 * j + 1];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInWater(point) {
+  const { waterPolyPtr, waterRingPtr, waterCoords } = app.data.bin;
+  const [x, y] = point;
+  for (let p = 0; p < waterPolyPtr.length - 1; p += 1) {
+    const ringStart = waterRingPtr[waterPolyPtr[p]];
+    const ringEnd = waterRingPtr[waterPolyPtr[p] + 1];
+    if (!pointInFlatRing(x, y, ringStart, ringEnd, waterCoords)) continue;
+    let inHole = false;
+    for (let r = waterPolyPtr[p] + 1; r < waterPolyPtr[p + 1]; r += 1) {
+      if (pointInFlatRing(x, y, waterRingPtr[r], waterRingPtr[r + 1], waterCoords)) {
+        inHole = true;
+        break;
+      }
+    }
+    if (!inHole) return true;
+  }
+  return false;
+}
+
 // --- Rivers --------------------------------------------------------------
 // Big rivers (Loire, Garonne, Rhône…) can only be crossed on foot by a bridge: a walk whose straight
 // line crosses one goes via the best bridge (only one: an island is reached via its stops). Same rule as build_data.py.
@@ -247,7 +279,7 @@ function walkMeters(a, b) {
 }
 
 function isOnLand(point) {
-  if (app.data.water.some((polygon) => pointInPolygon(point, polygon))) return false;
+  if (pointInWater(point)) return false;
   return app.data.boroughs.some((commune) => commune.polygons.some((polygon) => pointInPolygon(point, polygon)));
 }
 
@@ -309,23 +341,13 @@ class MinHeap {
 
 function prepareGraph(data) {
   const count = data.routeStates.length;
-  const offsets = new Int32Array(count + 1);
-  data.adjacency.forEach((edges, i) => {
-    offsets[i + 1] = offsets[i] + edges.length;
-  });
-  const targets = new Int32Array(offsets[count]);
-  const weights = new Float32Array(offsets[count]);
-  data.adjacency.forEach((edges, i) => {
-    edges.forEach(([target, weight], k) => {
-      targets[offsets[i] + k] = target;
-      weights[offsets[i] + k] = weight;
-    });
-  });
+  const { adjPtr: offsets, adjTarget: targets, adjWeight: weights } = data.bin;
   return {
     count,
     offsets,
     targets,
     weights,
+    extraWait: new Map(data.adjExtras),
     station: Int32Array.from(data.routeStates, (state) => state.stationIndex),
     wait: Float32Array.from(data.routeStates, (state) => state.wait),
     // Platform access (stairs, subway corridors), counted both on entry and exit.
@@ -438,7 +460,13 @@ function buildItinerary(solution, point) {
   const name = (state) => data.stations[graph.station[state]].name;
   const steps = [{ kind: "walk", text: `On foot to ${name(chain[0])}`, minutes: solution.seedWalk[chain[0]] }];
   // Share of the trip spent waiting for a train of its branch (line 13, RER A): the rare 3rd value of the edge.
-  const extraWait = (from, to) => data.adjacency[from].find(([target]) => target === to)?.[2] ?? 0;
+  const extraWait = (from, to) => {
+    const { offsets, targets, extraWait: extras } = graph;
+    for (let k = offsets[from]; k < offsets[from + 1]; k += 1) {
+      if (targets[k] === to) return extras.get(k) ?? 0;
+    }
+    return 0;
+  };
   let legStart = chain[0];
   let legExtra = 0;
   const closeLeg = (legEnd) => {
@@ -502,19 +530,22 @@ function fillGaps(values, cols, rows, passes) {
 }
 
 function computeGrid(solution) {
-  const { cells, meta } = app.data;
+  const { bin, meta } = app.data;
   const { gridCols: cols, gridRows: rows } = meta;
   const times = new Float32Array(cols * rows).fill(NaN);
-  for (const cell of cells) {
+  const { cellRow, cellCol, cellXY, cellAccPtr, cellAccStation, cellAccMeters } = bin;
+  const n = cellRow.length;
+  for (let c = 0; c < n; c += 1) {
     // cell.access already gives the true walking distance (build_data.py); direct walking is computed here.
     let best = Infinity;
-    for (const [station, meters] of cell.access) {
-      const time = solution.stationTime[station] + walkMinutes(meters);
+    for (let k = cellAccPtr[c]; k < cellAccPtr[c + 1]; k += 1) {
+      const time = solution.stationTime[cellAccStation[k]] + walkMinutes(cellAccMeters[k]);
       if (time < best) best = time;
     }
-    if (walkMinutes(hypot(solution.point, cell.point)) < best) best = Math.min(best, walkMinutes(walkMeters(solution.point, cell.point)));
+    const point = [cellXY[2 * c], cellXY[2 * c + 1]];
+    if (walkMinutes(hypot(solution.point, point)) < best) best = Math.min(best, walkMinutes(walkMeters(solution.point, point)));
     // Cell cut off behind a river, with no stop on its side: very far, but not infinite so as not to contaminate the smoothing.
-    times[cell.row * cols + cell.col] = Math.min(best, 180);
+    times[cellRow[c] * cols + cellCol[c]] = Math.min(best, 180);
   }
   // Isochrones straddle rivers (filled with the bank values) instead of going around them;
   // they are then clipped to dry land when drawn.
@@ -661,6 +692,27 @@ function buildPaths(data) {
     for (const polygon of polygons) for (const ring of polygon) ringPath(path, ring);
     return path;
   };
+  /** One Path2D per water polygon from the flat binary layout (evenodd fill keeps holes dry). */
+  const waterPaths = (bin, ox, oy) => {
+    const paths = [];
+    const { waterPolyPtr, waterRingPtr, waterCoords } = bin;
+    for (let p = 0; p < waterPolyPtr.length - 1; p += 1) {
+      const path = new Path2D();
+      for (let r = waterPolyPtr[p]; r < waterPolyPtr[p + 1]; r += 1) {
+        const s = waterRingPtr[r];
+        const e = waterRingPtr[r + 1];
+        for (let i = s; i < e; i += 1) {
+          const x = waterCoords[2 * i] - ox;
+          const y = waterCoords[2 * i + 1] - oy;
+          if (i === s) path.moveTo(x, y);
+          else path.lineTo(x, y);
+        }
+        path.closePath();
+      }
+      paths.push(path);
+    }
+    return paths;
+  };
   const communeLines = new Path2D();
   for (const area of [...data.boroughs, ...(data.arrondissements ?? [])]) for (const ring of area.outline) ringPath(communeLines, ring);
 
@@ -676,7 +728,7 @@ function buildPaths(data) {
     context: polygonsPath(data.context ?? []),
     // One path per polygon, filled with "evenodd": islands (holes) stay dry land,
     // without two overlapping water bodies cancelling out.
-    water: data.water.map((polygon) => polygonsPath([polygon])),
+    water: waterPaths(data.bin, ox, oy),
     parks: data.parks.map((polygon) => polygonsPath([polygon])),
     communeLines,
     routes: [...routes.values()].reverse(),
@@ -1848,6 +1900,22 @@ document.addEventListener("click", (event) => {
 // from CITY.dataBytes (exact file size baked in at build time), because the
 // browser transparently gunzips the response and Content-Length would report
 // the compressed size while the stream yields decompressed bytes.
+/** Parse the .bin container: JSON header + typed-array blobs (see tools/build_bin.py). */
+function parseBin(buffer) {
+  const header = new DataView(buffer, 0, 8);
+  if (header.getUint32(0, true) !== 0x31485447) throw new Error("Bad data magic");
+  const jsonLen = header.getUint32(4, true);
+  const data = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, 8, jsonLen)));
+  const base = 8 + jsonLen;
+  const bin = {};
+  for (const [name, m] of Object.entries(data.bin)) {
+    const Ctor = { i: Int32Array, f: Float32Array, H: Uint16Array }[m.type];
+    bin[name] = new Ctor(buffer, base + m.offset, m.count);
+  }
+  data.bin = bin;
+  return data;
+}
+
 async function loadDataWithProgress() {
   const progress = $("loadProgress");
   const fill = $("loadBarFill");
@@ -1864,7 +1932,7 @@ async function loadDataWithProgress() {
   const response = await fetch(DATA_URL);
   if (!response.ok) throw new Error(`HTTP ${response.status} loading ${DATA_URL}`);
   const total = Number(CITY.dataBytes) || 0;
-  if (!response.body || !response.body.getReader) return response.json();
+  if (!response.body || !response.body.getReader) return parseBin(await response.arrayBuffer());
   const reader = response.body.getReader();
   const chunks = [];
   let received = 0;
@@ -1876,7 +1944,8 @@ async function loadDataWithProgress() {
     show(received, total);
   }
   label.textContent = "Preparing the map…";
-  return JSON.parse(await new Blob(chunks).text());
+  const blob = new Blob(chunks);
+  return parseBin(await blob.arrayBuffer());
 }
 
 async function init() {
