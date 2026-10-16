@@ -128,6 +128,10 @@ def main(src, dst):
         offset += len(raw)
     header["bin"] = manifest
     header_json = json.dumps(header, separators=(",", ":")).encode("utf-8")
+    # Pad header to 8-byte alignment so binary blob offsets are valid for
+    # Int32Array/Float32Array/Uint16Array (RangeError if misaligned).
+    pad = (-len(header_json)) % 8
+    header_json += b" " * pad
 
     with open(dst, "wb") as f:
         f.write(b"GTH1")
