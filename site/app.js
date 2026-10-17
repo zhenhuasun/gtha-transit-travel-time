@@ -1346,12 +1346,12 @@ function restoreFromUrl() {
   const to = parsePair(params.get("to"));
   if (to && setTo(to, null, { quiet: true }) && params.get("carte") === "arrivee") setHeatFrom("to");
 
-  // Default framing: twice the fit-view zoom (≈ two "+" presses), centered on
+  // Default framing: 4x the fit-view zoom (≈ four "+" presses), centered on
   // the start point so "where am I" is obvious at first glance.
   if (app.from) {
     app.view.cx = app.from.point[0];
     app.view.cy = app.from.point[1];
-    app.view.scale = app.view.fitScale * 2;
+    app.view.scale = app.view.fitScale * 4;
     requestRender();
   }
 }
