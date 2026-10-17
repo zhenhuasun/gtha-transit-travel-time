@@ -2319,14 +2319,15 @@ function showOnboardingTooltip(html, x, y) {
   return tip;
 }
 
-function startOnboardingStep1() {
+function startOnboardingStep1(fromBack = false) {
   clearOnboarding();
   const dataReady = !!(app.from && app.data);
 
   logOnboardingEvent("start");
   // Scroll search into view (user may be scrolled down from a previous session)
+  // Use instant scroll when coming from Back to avoid async positioning issues
   const sf = $("searchForm");
-  if (sf) sf.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (sf) sf.scrollIntoView({ behavior: fromBack ? "instant" : "smooth", block: "center" });
 
   // Overlay
   const overlay = document.createElement("div");
@@ -2427,7 +2428,7 @@ function startOnboardingStep2() {
   );
   const backBtn = tip.querySelector('[data-act="back"]');
   const exploreBtn = tip.querySelector('[data-act="explore"]');
-  if (backBtn) backBtn.onclick = () => { console.log("[onboarding] back to step 1"); startOnboardingStep1(); };
+  if (backBtn) backBtn.onclick = () => { console.log("[onboarding] back to step 1"); startOnboardingStep1(true); };
   if (exploreBtn) exploreBtn.onclick = () => { console.log("[onboarding] done via explore"); logOnboardingEvent("complete"); clearOnboarding(); setOnboardingDone(); };
 
   onboardingState = { cleanup: () => {} };
