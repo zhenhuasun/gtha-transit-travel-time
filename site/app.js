@@ -2259,43 +2259,28 @@ function startOnboardingStep1() {
   } catch (e) { console.warn("onboarding dot highlight failed", e); }
 
   // Tooltip near search (centered, guaranteed visible)
+  // Step 1 is purely instructional: user can only proceed via Next/Skip buttons
   const srect = searchForm.getBoundingClientRect();
   const tipX = Math.max(12, Math.min(srect.left, window.innerWidth - 300));
   const tip = showOnboardingTooltip(
     `<p><strong>Set your start.</strong> Drag the green dot on the map, or search for an address.</p>
      <div class="onboarding-actions">
-       <button type="button" data-act="keep">Keep Union Station</button>
+       <button type="button" class="primary" data-act="next">Next</button>
        <button type="button" data-act="skip">Skip tour</button>
      </div>`,
     tipX, srect.bottom + 12
   );
 
-  const cleanupFns = [];
-  const done = (toStep2) => {
-    cleanupFns.forEach((fn) => fn());
-    if (toStep2) startOnboardingStep2();
-    else { clearOnboarding(); setOnboardingDone(); }
+  // Next -> Step 2, Skip -> done. No other interaction allowed in Step 1.
+  tip.querySelector('[data-act="next"]').onclick = () => {
+    clearOnboarding();
+    startOnboardingStep2();
   };
-
-  // Keep button
-  tip.querySelector('[data-act="keep"]').onclick = () => done(true);
-  tip.querySelector('[data-act="skip"]').onclick = () => done(false);
-
-  // Search submit completes step 1
-  const onSearch = (e) => { done(true); };
-  searchForm.addEventListener("submit", onSearch, { once: true });
-  cleanupFns.push(() => searchForm.removeEventListener("submit", onSearch));
-
-  // Marker drag completes step 1: watch for app.from.point changing
-  const origPoint = [...app.from.point];
-  const checkDrag = setInterval(() => {
-    if (app.from.point[0] !== origPoint[0] || app.from.point[1] !== origPoint[1]) {
-      clearInterval(checkDrag);
-      done(true);
-    }
-  }, 300);
-  cleanupFns.push(() => clearInterval(checkDrag));
-  onboardingState = { cleanup: () => cleanupFns.forEach((fn) => fn()) };
+  tip.querySelector('[data-act="skip"]').onclick = () => {
+    clearOnboarding();
+    setOnboardingDone();
+  };
+  onboardingState = { cleanup: () => {} };
 }
 
 function startOnboardingStep2() {
