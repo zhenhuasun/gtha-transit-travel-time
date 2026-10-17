@@ -1150,78 +1150,6 @@ function heatSource() {
   return app.heatFrom === "to" && app.to ? app.to : app.from;
 }
 
-/* ---- Drag computation scheduler (request coalescing + stale protection) ---- */
-let _pendingFromPos = null;   // latest world coords awaiting heatmap computation
-let _pendingToPos = null;
-let _computeTimer = null;     // scheduled timer id
-let _computeGen = 0;          // monotonic generation for stale-result protection
-let _lastComputeEnd = 0;      // timestamp of last completed computation
-const DRAG_COMPUTE_WINDOW = 200; // ms scheduling window during drag
-
-function _doScheduledCompute() {
-  _computeTimer = null;
-  const gen = ++_computeGen;
-  const fromPos = _pendingFromPos;
-  const toPos = _pendingToPos;
-  _pendingFromPos = null;
-  _pendingToPos = null;
-  if (!fromPos && !toPos) return;
-  _lastComputeEnd = performance.now();
-  // Apply pending positions without triggering nested scheduling
-  if (fromPos && isOnLand(fromPos)) {
-    app.from = { point: fromPos, label: describePlace(fromPos) };
-    app.originPulse = performance.now();
-  }
-  if (toPos && isOnLand(toPos)) {
-    app.to = { point: toPos, label: describePlace(toPos) };
-  }
-  recompute({ fast: true });
-  // Stale check: if a newer drag event arrived during recompute (impossible for
-  // sync recompute, but guards timer-vs-pointerup races), schedule it.
-  if ((_pendingFromPos || _pendingToPos) && !_computeTimer) {
-    _scheduleCompute(0);
-  }
-}
-
-function _scheduleCompute(delayMs) {
-  if (_computeTimer) return; // already scheduled; do NOT reset (avoid starvation)
-  _computeTimer = setTimeout(_doScheduledCompute, delayMs);
-}
-
-// Called from pointermove during marker drag: instant visual, deferred compute.
-function scheduleDragCompute(kind, world) {
-  // 1. Instant visual update: move the marker without full recompute
-  if (kind === "from") {
-    if (!isOnLand(world)) return false;
-    app.from = { point: world, label: app.from ? app.from.label : describePlace(world) };
-    app.originPulse = performance.now();
-    _pendingFromPos = world;
-  } else {
-    if (!isOnLand(world)) return false;
-    app.to = { point: world, label: app.to ? app.to.label : describePlace(world) };
-    _pendingToPos = world;
-  }
-  requestRender(); // marker follows finger immediately
-  // 2. Schedule heatmap computation (coalesced, 200ms window)
-  const elapsed = performance.now() - _lastComputeEnd;
-  _scheduleCompute(Math.max(0, DRAG_COMPUTE_WINDOW - elapsed));
-  return true;
-}
-
-// Called from pointerup/pointercancel: cancel pending, force final compute.
-function flushDragCompute(kind, world) {
-  if (_computeTimer) { clearTimeout(_computeTimer); _computeTimer = null; }
-  _pendingFromPos = null;
-  _pendingToPos = null;
-  _computeGen++; // invalidate any in-flight scheduled callback
-  _lastComputeEnd = performance.now();
-  if (kind === "from") {
-    setFrom(world, null, { quiet: false }); // full recompute + syncUrl
-  } else {
-    setTo(world, null, { quiet: false });
-  }
-}
-
 function recompute({ fast = false } = {}) {
   if (!app.from) return;
   const t0 = performance.now();
@@ -1238,7 +1166,7 @@ function recompute({ fast = false } = {}) {
   const t5 = performance.now();
   requestRender();
   const t6 = performance.now();
-  if (window.__PERF_LOG) console.log(`[perf] dijkstra=${(t1-t0).toFixed(1)}ms heatSol=${(t2-t1).toFixed(1)}ms grid=${(t3-t2).toFixed(1)}ms paint=${(t4-t3).toFixed(1)}ms panel=${(t5-t4).toFixed(1)}ms render=${(t6-t5).toFixed(1)}ms total=${(t6-t0).toFixed(1)}ms fast=${fast} gen=${_computeGen}`);
+  if (window.__PERF_LOG) console.log(`[perf] dijkstra=${(t1-t0).toFixed(1)}ms heatSol=${(t2-t1).toFixed(1)}ms grid=${(t3-t2).toFixed(1)}ms paint=${(t4-t3).toFixed(1)}ms panel=${(t5-t4).toFixed(1)}ms render=${(t6-t5).toFixed(1)}ms total=${(t6-t0).toFixed(1)}ms`);
 }
 
 function setFrom(point, label = null, { quiet = false, fast = false } = {}) {
@@ -1499,7 +1427,8 @@ canvas.addEventListener("pointermove", (event) => {
     drag.distance = distance;
   } else if (drag.kind === "marker") {
     const world = unproject(...screen);
-    scheduleDragCompute(drag.marker, world);
+    if (drag.marker === "from") setFrom(world, null, { quiet: true, fast: true });
+    else setTo(world, null, { quiet: true, fast: true });
   } else if (drag.kind === "pan") {
     if (!drag.moved && hypot(screen, drag.start) < drag.slop) return;
     drag.moved = true;
@@ -1521,19 +1450,12 @@ function endPointer(event) {
   }
   app.drag = null;
   canvas.classList.remove("panning");
-  if (event.type === "pointercancel") {
-    // Cancel any pending drag computation; keep last computed heatmap
-    if (_computeTimer) { clearTimeout(_computeTimer); _computeTimer = null; }
-    _pendingFromPos = null;
-    _pendingToPos = null;
-    _computeGen++;
-    return;
-  }
+  if (event.type === "pointercancel") return;
   if (drag.kind === "pan" && !drag.moved) {
     if (!setTo(unproject(...eventPoint(event)))) toast("This point is outside the metro area or on water.");
   } else if (drag.kind === "marker") {
-    const world = unproject(...eventPoint(event));
-    flushDragCompute(drag.marker, world);
+    recompute();
+    syncUrl();
   }
 }
 
