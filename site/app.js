@@ -1152,13 +1152,21 @@ function heatSource() {
 
 function recompute({ fast = false } = {}) {
   if (!app.from) return;
+  const t0 = performance.now();
   app.solution = solveFrom(app.from.point);
+  const t1 = performance.now();
   // "to" mode: times TO the destination (reverse Dijkstra), not from it.
   app.heatSolution = heatSource() === app.from ? app.solution : solveTo(app.to.point);
+  const t2 = performance.now();
   app.grid = computeGrid(app.heatSolution);
+  const t3 = performance.now();
   paintHeat(app.grid, { fast });
+  const t4 = performance.now();
   updatePanel();
+  const t5 = performance.now();
   requestRender();
+  const t6 = performance.now();
+  if (window.__PERF_LOG) console.log(`[perf] dijkstra=${(t1-t0).toFixed(1)}ms heatSol=${(t2-t1).toFixed(1)}ms grid=${(t3-t2).toFixed(1)}ms paint=${(t4-t3).toFixed(1)}ms panel=${(t5-t4).toFixed(1)}ms render=${(t6-t5).toFixed(1)}ms total=${(t6-t0).toFixed(1)}ms`);
 }
 
 function setFrom(point, label = null, { quiet = false, fast = false } = {}) {
@@ -2390,9 +2398,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ---- Tier1 Splash (independent preview) ---- */
-const TIER1_URL = new URL(`./data/${CITY.slug}-tier1.bin?v=${CITY.dataVersion}`, import.meta.url);
+function tier1Url() {
+  return new URL(`./data/${CITY.slug}-tier1.bin?v=${CITY.dataVersion}`, import.meta.url);
+}
 async function loadTier1() {
-  const resp = await fetch(TIER1_URL);
+  const resp = await fetch(tier1Url());
   if (!resp.ok) throw new Error(`Tier1 HTTP ${resp.status}`);
   return parseBin(await resp.arrayBuffer());
 }
