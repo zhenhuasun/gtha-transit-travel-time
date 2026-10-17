@@ -1275,14 +1275,18 @@ output {
   text-align: center;
 }
 
-/* Badge + name: inline-block keeps table borders intact (flex on td breaks them). */
-.lines-table td:first-child {
-  vertical-align: middle;
+/* Badge + name in a flex wrapper inside the td (flex on td breaks borders). */
+.lines-table .line-cell {
+  display: flex;
+  align-items: flex-start;
 }
 .lines-table .line-badge {
-  display: inline-block;
-  vertical-align: middle;
+  flex: none;
   margin-right: 8px;
+}
+.lines-table .line-name {
+  flex: 1;
+  min-width: 0;
 }
 
 .ranking-table td:first-child,
