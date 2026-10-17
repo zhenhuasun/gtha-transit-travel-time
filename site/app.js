@@ -2256,7 +2256,7 @@ function startOnboardingStep1() {
   // Highlight green dot via positioned div (non-fatal if project fails)
   try {
     const [sx, sy] = project(app.from.point);
-    const canvas = $("map");
+    const canvas = $("mapCanvas");
     const rect = canvas.getBoundingClientRect();
     const dotHl = document.createElement("div");
     dotHl.className = "onboarding-dot-highlight";
@@ -2303,7 +2303,7 @@ function startOnboardingStep2() {
   document.body.appendChild(overlay);
 
   const stage = document.querySelector(".map-stage");
-  const hlTarget = stage || $("map");
+  const hlTarget = stage || $("mapCanvas");
   if (hlTarget) {
     hlTarget.style.zIndex = "2001";
     hlTarget.style.position = "relative";
