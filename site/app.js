@@ -2221,6 +2221,11 @@ function clearOnboarding() {
   console.log("[onboarding] clearing");
   document.querySelectorAll(".onboarding-overlay, .onboarding-tooltip, .onboarding-dot-highlight").forEach((el) => el.remove());
   document.querySelectorAll(".onboarding-highlight").forEach((el) => el.classList.remove("onboarding-highlight"));
+  document.querySelectorAll('[data-onboarding-hl]').forEach((el) => {
+    el.style.zIndex = ""; el.style.position = ""; el.style.boxShadow = "";
+    el.style.borderRadius = ""; el.style.pointerEvents = "";
+    delete el.dataset.onboardingHl;
+  });
   try { if (onboardingState?.cleanup) onboardingState.cleanup(); } catch (e) {}
   onboardingState = null;
 }
@@ -2293,8 +2298,16 @@ function startOnboardingStep2() {
   overlay.className = "onboarding-overlay";
   document.body.appendChild(overlay);
 
-  const canvas = $("map");
-  if (canvas) canvas.classList.add("onboarding-highlight");
+  const stage = document.querySelector(".map-stage");
+  const hlTarget = stage || $("map");
+  if (hlTarget) {
+    hlTarget.style.zIndex = "2001";
+    hlTarget.style.position = "relative";
+    hlTarget.style.boxShadow = "0 0 0 4px #fff, 0 0 32px rgba(255,255,255,0.7)";
+    hlTarget.style.borderRadius = "12px";
+    hlTarget.style.pointerEvents = "none";
+    hlTarget.dataset.onboardingHl = "1";
+  }
 
   const rect = canvas ? canvas.getBoundingClientRect() : { left: 20, width: 300, top: 100 };
   const tip = showOnboardingTooltip(
