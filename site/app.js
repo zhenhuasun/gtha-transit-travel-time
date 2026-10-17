@@ -2294,6 +2294,10 @@ function startOnboardingStep2() {
   clearOnboarding();
   console.log("[onboarding] entering step 2");
 
+  // Scroll map into view first (user may have scrolled down in step 1)
+  const stage = document.querySelector(".map-stage");
+  if (stage) stage.scrollIntoView({ behavior: "smooth", block: "center" });
+
   const overlay = document.createElement("div");
   overlay.className = "onboarding-overlay";
   document.body.appendChild(overlay);
@@ -2309,14 +2313,16 @@ function startOnboardingStep2() {
     hlTarget.dataset.onboardingHl = "1";
   }
 
-  const rect = canvas ? canvas.getBoundingClientRect() : { left: 20, width: 300, top: 100 };
+  // Wait a tick for scroll to settle, then position tooltip in viewport
+  const rect = (document.querySelector(".map-stage") || canvas)?.getBoundingClientRect() || { left: 20, width: 300, top: 100 };
+  const tipTop = Math.max(12, Math.min(rect.top + 20, window.innerHeight - 200));
   const tip = showOnboardingTooltip(
     `<p><strong>Pick a destination.</strong> Click anywhere on the map to see travel time and route details.</p>
      <div class="onboarding-actions">
        <button type="button" data-act="back">Back</button>
        <button type="button" class="primary" data-act="explore">Start exploring</button>
      </div>`,
-    Math.max(12, rect.left + rect.width / 2 - 140), rect.top + 20
+    Math.max(12, rect.left + rect.width / 2 - 140), tipTop
   );
   const backBtn = tip.querySelector('[data-act="back"]');
   const exploreBtn = tip.querySelector('[data-act="explore"]');
