@@ -2413,29 +2413,66 @@ async function showTier1Splash() {
     const canvas = document.getElementById("splashCanvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const { cellXY } = tier1.bin;
+    const { cellXY, stationXY, adjPtr, adjTarget, adjWeight } = tier1.bin;
     const nCells = cellXY.length / 2;
+    const nStations = stationXY.length / 2;
+    // Union Station approx: use station closest to Toronto downtown center
+    // For splash, use station 0 as start (or find nearest to default)
+    const startIdx = 0;
+    // Dijkstra
+    const dist = new Float64Array(nStations).fill(Infinity);
+    const heap = new MinHeap();
+    dist[startIdx] = 0; heap.push(0, startIdx);
+    while (heap.size) {
+      const u = heap.pop(), du = dist[u];
+      for (let e = adjPtr[u]; e < adjPtr[u+1]; e++) {
+        const v = adjTarget[e], nd = du + adjWeight[e];
+        if (nd < dist[v]) { dist[v] = nd; heap.push(nd, v); }
+      }
+    }
+    // Bounds
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (let i = 0; i < nCells; i++) {
       const x = cellXY[i*2], y = cellXY[i*2+1];
       if (x < minX) minX = x; if (x > maxX) maxX = x;
       if (y < minY) minY = y; if (y > maxY) maxY = y;
     }
-    const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
-    const maxD = Math.hypot(maxX-minX, maxY-minY)/2;
     ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     const scale = Math.min(canvas.width/(maxX-minX), canvas.height/(maxY-minY)) * 0.9;
-    for (let i = 0; i < nCells; i += 3) {
-      const wx = cellXY[i*2], wy = cellXY[i*2+1];
-      const d = Math.hypot(wx-cx, wy-cy)/maxD;
-      const time = d * 90;
-      if (time > 90) continue;
+    const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+    // Spatial hash for stations (100x100 grid)
+    const grid = new Map();
+    const gx = (maxX-minX)/100, gy = (maxY-minY)/100;
+    for (let i = 0; i < nStations; i++) {
+      const kx = Math.floor((stationXY[i*2]-minX)/gx), ky = Math.floor((stationXY[i*2+1]-minY)/gy);
+      const k = kx*1000+ky;
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(i);
+    }
+    const walkMpm = 80;
+    for (let c = 0; c < nCells; c += 2) {
+      const wx = cellXY[c*2], wy = cellXY[c*2+1];
+      // Find nearest station via spatial hash
+      const kx = Math.floor((wx-minX)/gx), ky = Math.floor((wy-minY)/gy);
+      let best = Infinity, bestIdx = -1;
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        const arr = grid.get((kx+dx)*1000+(ky+dy));
+        if (!arr) continue;
+        for (const si of arr) {
+          const ddx = stationXY[si*2]-wx, ddy = stationXY[si*2+1]-wy;
+          const d = ddx*ddx+ddy*ddy;
+          if (d < best) { best = d; bestIdx = si; }
+        }
+      }
+      if (bestIdx < 0 || !Number.isFinite(dist[bestIdx])) continue;
+      const time = dist[bestIdx] + Math.sqrt(best)/walkMpm;
+      if (time > 120) continue;
       const sx = canvas.width/2 + (wx-cx)*scale;
       const sy = canvas.height/2 - (wy-cy)*scale;
       const t = Math.min(1, time/60);
       const r = Math.floor(255*Math.min(1, t*2)), g = Math.floor(255*Math.min(1, (1-t)*2));
-      ctx.fillStyle = `rgba(${r},${g},80,0.5)`;
-      const s = Math.max(2, 800*scale/3);
+      ctx.fillStyle = `rgba(${r},${g},80,0.55)`;
+      const s = Math.max(2, 800*scale/2);
       ctx.fillRect(sx-s/2, sy-s/2, s, s);
     }
     document.getElementById("splashStatus").textContent = "Loading full map…";
