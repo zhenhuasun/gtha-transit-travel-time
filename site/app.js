@@ -2354,8 +2354,21 @@ function startOnboardingStep1() {
   // Step 1 is purely instructional: user can only proceed via Next/Skip buttons
   // Re-measure after scroll settles
   const srect = $("searchForm").getBoundingClientRect();
+  const vv = window.visualViewport;
+  const vh = vv ? vv.height : window.innerHeight;
   const tipX = Math.max(12, Math.min(Math.max(0, srect.left), window.innerWidth - 300));
-  const tipY = srect.bottom > 0 && srect.top < window.innerHeight ? srect.bottom + 12 : Math.max(12, window.innerHeight / 3);
+  // Estimate tooltip height (~180px with buttons); place below if fits, else above
+  const estH = 190;
+  const belowY = srect.bottom + 12;
+  const aboveY = srect.top - estH - 12;
+  let tipY;
+  if (belowY + estH <= vh - 20) {
+    tipY = belowY; // fits below
+  } else if (aboveY >= 12) {
+    tipY = aboveY; // fits above
+  } else {
+    tipY = Math.max(12, vh - estH - 20); // fallback: pin to visible area
+  }
   const tip = showOnboardingTooltip(
     `<p><strong>Set your start.</strong> <em>See how far you can go from anywhere in the GTHA by transit.</em><br>Drag the green dot on the map, or search for an address.${dataReady ? "" : '<br><span style="color:#f59e0b;">● Map loading…</span>'}</p>
      <div class="onboarding-actions">
@@ -2401,7 +2414,9 @@ function startOnboardingStep2() {
 
   // Wait a tick for scroll to settle, then position tooltip in viewport
   const rect = (document.querySelector(".map-stage") || canvas)?.getBoundingClientRect() || { left: 20, width: 300, top: 100 };
-  const tipTop = Math.max(12, Math.min(rect.top + 20, window.innerHeight - 200));
+  const _vv2 = window.visualViewport;
+  const _vh2 = _vv2 ? _vv2.height : window.innerHeight;
+  const tipTop = Math.max(12, Math.min(rect.top + 20, _vh2 - 200));
   const tip = showOnboardingTooltip(
     `<p><strong>Pick a destination.</strong> Click anywhere on the map to see travel time and route details.</p>
      <div class="onboarding-actions">
