@@ -2295,7 +2295,10 @@ let onboardingState = null;
 
 function clearOnboarding() {
   console.log("[onboarding] clearing");
-  document.querySelectorAll(".onboarding-overlay, .onboarding-tooltip, .onboarding-dot-highlight").forEach((el) => el.remove());
+  document.querySelectorAll(".onboarding-overlay, .onboarding-tooltip, .onboarding-dot-highlight").forEach((el) => {
+    try { el._vvCleanup && el._vvCleanup(); } catch {}
+    el.remove();
+  });
   document.querySelectorAll(".onboarding-highlight").forEach((el) => el.classList.remove("onboarding-highlight"));
   document.querySelectorAll('[data-onboarding-hl]').forEach((el) => {
     el.style.zIndex = ""; el.style.position = ""; el.style.boxShadow = "";

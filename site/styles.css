@@ -1790,6 +1790,8 @@ output {
   position: fixed;
   z-index: 2002;
   max-width: 280px;
+  /* Avoid iOS Safari toolbar / home indicator overlap */
+  margin-bottom: env(safe-area-inset-bottom, 0px);
   padding: 12px 14px;
   background: #fff;
   border-radius: 12px;
