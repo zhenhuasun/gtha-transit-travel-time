@@ -2207,6 +2207,32 @@ init().then(() => maybeStartOnboarding()).catch((error) => {
 
 /* ---- Onboarding tutorial ---- */
 const ONBOARDING_KEY = "gtha-onboarding-done";
+const ONBOARDING_EVENTS_KEY = "gtha-onboarding-events";
+
+// Privacy-safe local analytics: event names only, no coordinates, no PII.
+// View via ?debug=onboarding
+function logOnboardingEvent(name) {
+  try {
+    const events = JSON.parse(localStorage.getItem(ONBOARDING_EVENTS_KEY) || "[]");
+    events.push({ event: name, ts: Date.now() });
+    localStorage.setItem(ONBOARDING_EVENTS_KEY, JSON.stringify(events.slice(-100)));
+    if (new URLSearchParams(location.search).has("debug")) {
+      console.log("[onboarding-event]", name, events.length);
+    }
+  } catch {}
+}
+function showOnboardingDebug() {
+  try {
+    const events = JSON.parse(localStorage.getItem(ONBOARDING_EVENTS_KEY) || "[]");
+    const counts = {};
+    events.forEach((e) => { counts[e.event] = (counts[e.event] || 0) + 1; });
+    console.table(counts);
+    return counts;
+  } catch { return {}; }
+}
+if (new URLSearchParams(location.search).get("debug") === "onboarding") {
+  setTimeout(() => { console.log("=== Onboarding events ==="); showOnboardingDebug(); }, 1000);
+}
 
 function onboardingDone() {
   try { return localStorage.getItem(ONBOARDING_KEY) === "1"; } catch { return true; }
@@ -2244,6 +2270,7 @@ function startOnboardingStep1() {
   clearOnboarding();
   if (!app.from) return;
 
+  logOnboardingEvent("start");
   // Scroll search into view (user may be scrolled down from a previous session)
   const sf = $("searchForm");
   if (sf) sf.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2277,7 +2304,7 @@ function startOnboardingStep1() {
   const tipX = Math.max(12, Math.min(Math.max(0, srect.left), window.innerWidth - 300));
   const tipY = srect.bottom > 0 && srect.top < window.innerHeight ? srect.bottom + 12 : Math.max(12, window.innerHeight / 3);
   const tip = showOnboardingTooltip(
-    `<p><strong>Set your start.</strong> Drag the green dot on the map, or search for an address.</p>
+    `<p><strong>Set your start.</strong> <em>See how far you can go from anywhere in the GTHA by transit.</em><br>Drag the green dot on the map, or search for an address.</p>
      <div class="onboarding-actions">
        <button type="button" class="primary" data-act="next">Next</button>
        <button type="button" data-act="skip">Skip tour</button>
@@ -2291,16 +2318,14 @@ function startOnboardingStep1() {
     console.log("[onboarding] next clicked, going to step 2");
     startOnboardingStep2();
   };
-  tip.querySelector('[data-act="skip"]').onclick = () => {
-    clearOnboarding();
-    setOnboardingDone();
-  };
+  tip.querySelector('[data-act="skip"]').onclick = () => { logOnboardingEvent("skip"); clearOnboarding(); setOnboardingDone(); };
   onboardingState = { cleanup: () => {} };
 }
 
 function startOnboardingStep2() {
   clearOnboarding();
   console.log("[onboarding] entering step 2");
+  logOnboardingEvent("step2");
 
   // Scroll map into view first (user may have scrolled down in step 1)
   const stageEl = document.querySelector(".map-stage");
@@ -2335,7 +2360,7 @@ function startOnboardingStep2() {
   const backBtn = tip.querySelector('[data-act="back"]');
   const exploreBtn = tip.querySelector('[data-act="explore"]');
   if (backBtn) backBtn.onclick = () => { console.log("[onboarding] back to step 1"); startOnboardingStep1(); };
-  if (exploreBtn) exploreBtn.onclick = () => { console.log("[onboarding] done via explore"); clearOnboarding(); setOnboardingDone(); };
+  if (exploreBtn) exploreBtn.onclick = () => { console.log("[onboarding] done via explore"); logOnboardingEvent("complete"); clearOnboarding(); setOnboardingDone(); };
 
   onboardingState = { cleanup: () => {} };
 }
