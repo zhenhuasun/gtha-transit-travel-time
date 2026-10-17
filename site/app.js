@@ -1346,12 +1346,12 @@ function restoreFromUrl() {
   const to = parsePair(params.get("to"));
   if (to && setTo(to, null, { quiet: true }) && params.get("carte") === "arrivee") setHeatFrom("to");
 
-  // Default framing: twice the fit-view zoom (≈ two "+" presses), centered on
+  // Default framing: 4x the fit-view zoom (≈ four "+" presses), centered on
   // the start point so "where am I" is obvious at first glance.
   if (app.from) {
     app.view.cx = app.from.point[0];
     app.view.cy = app.from.point[1];
-    app.view.scale = app.view.fitScale * 2;
+    app.view.scale = app.view.fitScale * 4;
     requestRender();
   }
 }
@@ -2199,8 +2199,188 @@ async function init() {
   new ResizeObserver(resize).observe(canvas);
 }
 
-init().catch((error) => {
+init().then(() => maybeStartOnboarding()).catch((error) => {
   console.error(error);
   $("loadProgress").hidden = true;
   $("tripFrom").textContent = "Couldn't load the network.";
+});
+
+/* ---- Onboarding tutorial ---- */
+const ONBOARDING_KEY = "gtha-onboarding-done";
+const ONBOARDING_EVENTS_KEY = "gtha-onboarding-events";
+
+// Privacy-safe local analytics: event names only, no coordinates, no PII.
+// View via ?debug=onboarding
+function logOnboardingEvent(name) {
+  try {
+    const events = JSON.parse(localStorage.getItem(ONBOARDING_EVENTS_KEY) || "[]");
+    events.push({ event: name, ts: Date.now() });
+    localStorage.setItem(ONBOARDING_EVENTS_KEY, JSON.stringify(events.slice(-100)));
+    if (new URLSearchParams(location.search).has("debug")) {
+      console.log("[onboarding-event]", name, events.length);
+    }
+  } catch {}
+}
+function showOnboardingDebug() {
+  try {
+    const events = JSON.parse(localStorage.getItem(ONBOARDING_EVENTS_KEY) || "[]");
+    const counts = {};
+    events.forEach((e) => { counts[e.event] = (counts[e.event] || 0) + 1; });
+    console.table(counts);
+    return counts;
+  } catch { return {}; }
+}
+if (new URLSearchParams(location.search).get("debug") === "onboarding") {
+  setTimeout(() => { console.log("=== Onboarding events ==="); showOnboardingDebug(); }, 1000);
+}
+
+function onboardingDone() {
+  try { return localStorage.getItem(ONBOARDING_KEY) === "1"; } catch { return true; }
+}
+function setOnboardingDone() {
+  try { localStorage.setItem(ONBOARDING_KEY, "1"); } catch {}
+}
+
+let onboardingState = null;
+
+function clearOnboarding() {
+  console.log("[onboarding] clearing");
+  document.querySelectorAll(".onboarding-overlay, .onboarding-tooltip, .onboarding-dot-highlight").forEach((el) => el.remove());
+  document.querySelectorAll(".onboarding-highlight").forEach((el) => el.classList.remove("onboarding-highlight"));
+  document.querySelectorAll('[data-onboarding-hl]').forEach((el) => {
+    el.style.zIndex = ""; el.style.position = ""; el.style.boxShadow = "";
+    el.style.borderRadius = ""; el.style.pointerEvents = "";
+    delete el.dataset.onboardingHl;
+  });
+  try { if (onboardingState?.cleanup) onboardingState.cleanup(); } catch (e) {}
+  onboardingState = null;
+}
+
+function showOnboardingTooltip(html, x, y) {
+  const tip = document.createElement("div");
+  tip.className = "onboarding-tooltip";
+  tip.innerHTML = html;
+  tip.style.left = `${Math.min(x, window.innerWidth - 300)}px`;
+  tip.style.top = `${y}px`;
+  document.body.appendChild(tip);
+  return tip;
+}
+
+function startOnboardingStep1() {
+  clearOnboarding();
+  if (!app.from) return;
+
+  logOnboardingEvent("start");
+  // Scroll search into view (user may be scrolled down from a previous session)
+  const sf = $("searchForm");
+  if (sf) sf.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // Overlay
+  const overlay = document.createElement("div");
+  overlay.className = "onboarding-overlay";
+  document.body.appendChild(overlay);
+
+  // Highlight search form
+  const searchForm = $("searchForm");
+  if (searchForm) searchForm.classList.add("onboarding-highlight");
+
+  // Highlight green dot: absolute inside map-stage so it scrolls with the map
+  try {
+    const [sx, sy] = project(app.from.point);
+    const stageEl2 = document.querySelector(".map-stage");
+    const host = stageEl2 || document.body;
+    if (stageEl2 && getComputedStyle(stageEl2).position === "static") stageEl2.style.position = "relative";
+    const dotHl = document.createElement("div");
+    dotHl.className = "onboarding-dot-highlight";
+    // sx,sy are relative to canvas top-left; canvas fills the stage
+    dotHl.style.cssText = `position:absolute;left:${sx - 20}px;top:${sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);`;
+    host.appendChild(dotHl);
+  } catch (e) { console.warn("onboarding dot highlight failed", e); }
+
+  // Tooltip near search (centered, guaranteed visible)
+  // Step 1 is purely instructional: user can only proceed via Next/Skip buttons
+  // Re-measure after scroll settles
+  const srect = $("searchForm").getBoundingClientRect();
+  const tipX = Math.max(12, Math.min(Math.max(0, srect.left), window.innerWidth - 300));
+  const tipY = srect.bottom > 0 && srect.top < window.innerHeight ? srect.bottom + 12 : Math.max(12, window.innerHeight / 3);
+  const tip = showOnboardingTooltip(
+    `<p><strong>Set your start.</strong> <em>See how far you can go from anywhere in the GTHA by transit.</em><br>Drag the green dot on the map, or search for an address.</p>
+     <div class="onboarding-actions">
+       <button type="button" class="primary" data-act="next">Next</button>
+       <button type="button" data-act="skip">Skip tour</button>
+     </div>`,
+    tipX, tipY
+  );
+
+  // Next -> Step 2, Skip -> done. No other interaction allowed in Step 1.
+  const nextBtn = tip.querySelector('[data-act="next"]');
+  if (nextBtn) nextBtn.onclick = () => {
+    console.log("[onboarding] next clicked, going to step 2");
+    startOnboardingStep2();
+  };
+  tip.querySelector('[data-act="skip"]').onclick = () => { logOnboardingEvent("skip"); clearOnboarding(); setOnboardingDone(); };
+  onboardingState = { cleanup: () => {} };
+}
+
+function startOnboardingStep2() {
+  clearOnboarding();
+  console.log("[onboarding] entering step 2");
+  logOnboardingEvent("step2");
+
+  // Scroll map into view first (user may have scrolled down in step 1)
+  const stageEl = document.querySelector(".map-stage");
+  if (stageEl) stageEl.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  const overlay = document.createElement("div");
+  overlay.className = "onboarding-overlay";
+  document.body.appendChild(overlay);
+
+  const stage = document.querySelector(".map-stage");
+  const hlTarget = stage || $("mapCanvas");
+  if (hlTarget) {
+    hlTarget.style.zIndex = "2001";
+    hlTarget.style.position = "relative";
+    hlTarget.style.boxShadow = "0 0 0 4px #fff, 0 0 32px rgba(255,255,255,0.7)";
+    hlTarget.style.borderRadius = "12px";
+    hlTarget.style.pointerEvents = "none";
+    hlTarget.dataset.onboardingHl = "1";
+  }
+
+  // Wait a tick for scroll to settle, then position tooltip in viewport
+  const rect = (document.querySelector(".map-stage") || canvas)?.getBoundingClientRect() || { left: 20, width: 300, top: 100 };
+  const tipTop = Math.max(12, Math.min(rect.top + 20, window.innerHeight - 200));
+  const tip = showOnboardingTooltip(
+    `<p><strong>Pick a destination.</strong> Click anywhere on the map to see travel time and route details.</p>
+     <div class="onboarding-actions">
+       <button type="button" data-act="back">Back</button>
+       <button type="button" class="primary" data-act="explore">Start exploring</button>
+     </div>`,
+    Math.max(12, rect.left + rect.width / 2 - 140), tipTop
+  );
+  const backBtn = tip.querySelector('[data-act="back"]');
+  const exploreBtn = tip.querySelector('[data-act="explore"]');
+  if (backBtn) backBtn.onclick = () => { console.log("[onboarding] back to step 1"); startOnboardingStep1(); };
+  if (exploreBtn) exploreBtn.onclick = () => { console.log("[onboarding] done via explore"); logOnboardingEvent("complete"); clearOnboarding(); setOnboardingDone(); };
+
+  onboardingState = { cleanup: () => {} };
+}
+
+function maybeStartOnboarding() {
+  if (onboardingDone()) return;
+  // Wait for map to be ready
+  const check = setInterval(() => {
+    if (app.from && app.grid) {
+      clearInterval(check);
+      startOnboardingStep1();
+    }
+  }, 500);
+  setTimeout(() => clearInterval(check), 30000);
+}
+
+// Re-trigger button
+document.addEventListener("DOMContentLoaded", () => {
+  $("onboardingHelp")?.addEventListener("click", () => {
+    try { localStorage.removeItem(ONBOARDING_KEY); } catch {}
+    startOnboardingStep1();
+  });
 });
