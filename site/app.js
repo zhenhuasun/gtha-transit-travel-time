@@ -1349,7 +1349,12 @@ function restoreFromUrl() {
 
   const from = parsePair(params.get("from"));
   if (!from || !setFrom(from, null, { quiet: true })) {
-    setFrom(toWorld(DEFAULT_FROM.lat, DEFAULT_FROM.lon), DEFAULT_FROM.label, { quiet: true });
+    // Prefer tier1 preview start point if user clicked there
+    if (window._tier1StartWorld && setFrom(window._tier1StartWorld, "Preview start", { quiet: true })) {
+      // tier1 start applied
+    } else {
+      setFrom(toWorld(DEFAULT_FROM.lat, DEFAULT_FROM.lon), DEFAULT_FROM.label, { quiet: true });
+    }
   }
   const to = parsePair(params.get("to"));
   if (to && setTo(to, null, { quiet: true }) && params.get("carte") === "arrivee") setHeatFrom("to");
@@ -2406,14 +2411,76 @@ async function loadTier1() {
   if (!resp.ok) throw new Error(`Tier1 HTTP ${resp.status}`);
   return parseBin(await resp.arrayBuffer());
 }
+// ---- Interactive Tier1 Preview ----
+let _tier1State = null; // { tier1, startIdx, canvas, ctx, bounds, scale, grid }
+
+function _tier1Render() {
+  const st = _tier1State;
+  if (!st) return;
+  const { tier1, startIdx, canvas, ctx } = st;
+  const { cellXY, stationXY, adjPtr, adjTarget, adjWeight } = tier1.bin;
+  const nCells = cellXY.length / 2;
+  const nStations = stationXY.length / 2;
+  // Dijkstra from startIdx
+  const dist = new Float64Array(nStations).fill(Infinity);
+  const heap = new MinHeap();
+  dist[startIdx] = 0; heap.push(0, startIdx);
+  while (heap.size) {
+    const u = heap.pop(), du = dist[u];
+    if (u >= adjPtr.length - 1) continue;
+    for (let e = adjPtr[u]; e < adjPtr[u+1]; e++) {
+      const v = adjTarget[e], nd = du + adjWeight[e];
+      if (v < nStations && nd < dist[v]) { dist[v] = nd; heap.push(nd, v); }
+    }
+  }
+  const { minX, maxX, minY, maxY } = st.bounds;
+  ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const scale = st.scale, cx = st.cx, cy = st.cy;
+  const walkMpm = 80;
+  for (let c = 0; c < nCells; c += 2) {
+    const wx = cellXY[c*2], wy = cellXY[c*2+1];
+    const kx = Math.floor((wx-minX)/st.gx), ky = Math.floor((wy-minY)/st.gy);
+    let best = Infinity, bestIdx = -1;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const arr = st.grid.get((kx+dx)*1000+(ky+dy));
+      if (!arr) continue;
+      for (const si of arr) {
+        const ddx = stationXY[si*2]-wx, ddy = stationXY[si*2+1]-wy;
+        const d = ddx*ddx+ddy*ddy;
+        if (d < best) { best = d; bestIdx = si; }
+      }
+    }
+    if (bestIdx < 0 || !Number.isFinite(dist[bestIdx])) continue;
+    const time = dist[bestIdx] + Math.sqrt(best)/walkMpm;
+    if (time > 120) continue;
+    const sx = canvas.width/2 + (wx-cx)*scale;
+    const sy = canvas.height/2 - (wy-cy)*scale;
+    const t = Math.min(1, time/60);
+    const r = Math.floor(255*Math.min(1, t*2)), g = Math.floor(255*Math.min(1, (1-t)*2));
+    ctx.fillStyle = `rgba(${r},${g},80,0.55)`;
+    const sz = Math.max(2, 800*scale/2);
+    ctx.fillRect(sx-sz/2, sy-sz/2, sz, sz);
+  }
+  // Draw start marker (green dot)
+  const stx = stationXY[startIdx*2], sty = stationXY[startIdx*2+1];
+  const px = canvas.width/2 + (stx-cx)*scale;
+  const py = canvas.height/2 - (sty-cy)*scale;
+  ctx.fillStyle = "#22c55e";
+  ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+  // Save start world coords for handoff to full app
+  window._tier1StartWorld = [stx, sty];
+}
+
 async function showTier1Splash() {
   const splash = document.createElement("div");
   splash.id = "tier1Splash";
   splash.style.cssText = "position:fixed;inset:0;z-index:3000;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;";
-  splash.innerHTML = `<canvas id="splashCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
-    <div style="position:relative;z-index:1;background:rgba(0,0,0,0.6);padding:12px 20px;border-radius:12px;text-align:center;">
-    <div style="font-weight:600;margin-bottom:4px;">Loading preview…</div>
-    <div id="splashStatus" style="font-size:0.85rem;opacity:0.8;">Fetching data</div></div>`;
+  splash.innerHTML = `<canvas id="splashCanvas" style="position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;"></canvas>
+    <div style="position:relative;z-index:1;background:rgba(0,0,0,0.6);padding:12px 20px;border-radius:12px;text-align:center;pointer-events:none;">
+    <div style="font-weight:600;margin-bottom:4px;">Interactive preview</div>
+    <div id="splashStatus" style="font-size:0.85rem;opacity:0.8;">Fetching data</div>
+    <div style="font-size:0.75rem;opacity:0.6;margin-top:4px;">Click anywhere to move the start point</div></div>`;
   document.body.appendChild(splash);
   try {
     document.getElementById("splashStatus").textContent = "Loading preview (6MB)…";
@@ -2423,50 +2490,44 @@ async function showTier1Splash() {
     const canvas = document.getElementById("splashCanvas");
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    const { cellXY, stationXY, adjPtr, adjTarget, adjWeight } = tier1.bin;
-    const nCells = cellXY.length / 2;
-    const nStations = stationXY.length / 2;
-    // Union Station approx: use station closest to Toronto downtown center
-    // For splash, use station 0 as start (or find nearest to default)
-    const startIdx = 0;
-    // Dijkstra
-    const dist = new Float64Array(nStations).fill(Infinity);
-    const heap = new MinHeap();
-    dist[startIdx] = 0; heap.push(0, startIdx);
-    while (heap.size) {
-      const u = heap.pop(), du = dist[u];
-      for (let e = adjPtr[u]; e < adjPtr[u+1]; e++) {
-        const v = adjTarget[e], nd = du + adjWeight[e];
-        if (nd < dist[v]) { dist[v] = nd; heap.push(nd, v); }
-      }
-    }
-    // Bounds
+    const { cellXY, stationXY } = tier1.bin;
+    const nCells = cellXY.length / 2, nStations = stationXY.length / 2;
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (let i = 0; i < nCells; i++) {
       const x = cellXY[i*2], y = cellXY[i*2+1];
       if (x < minX) minX = x; if (x > maxX) maxX = x;
       if (y < minY) minY = y; if (y > maxY) maxY = y;
     }
-    ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     const scale = Math.min(canvas.width/(maxX-minX), canvas.height/(maxY-minY)) * 0.9;
     const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
-    // Spatial hash for stations (100x100 grid)
-    const grid = new Map();
     const gx = (maxX-minX)/100, gy = (maxY-minY)/100;
+    const grid = new Map();
     for (let i = 0; i < nStations; i++) {
       const kx = Math.floor((stationXY[i*2]-minX)/gx), ky = Math.floor((stationXY[i*2+1]-minY)/gy);
       const k = kx*1000+ky;
       if (!grid.has(k)) grid.set(k, []);
       grid.get(k).push(i);
     }
-    const walkMpm = 80;
-    for (let c = 0; c < nCells; c += 2) {
-      const wx = cellXY[c*2], wy = cellXY[c*2+1];
-      // Find nearest station via spatial hash
-      const kx = Math.floor((wx-minX)/gx), ky = Math.floor((wy-minY)/gy);
-      let best = Infinity, bestIdx = -1;
-      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
-        const arr = grid.get((kx+dx)*1000+(ky+dy));
+    _tier1State = { tier1, startIdx: 0, canvas, ctx,
+      bounds: { minX, maxX, minY, maxY }, scale, cx, cy, gx, gy, grid };
+    _tier1Render();
+    document.getElementById("splashStatus").textContent = "Full data loading in background…";
+    // Click to move start
+    canvas.addEventListener("click", (ev) => {
+      const st = _tier1State;
+      if (!st) return;
+      const rect = canvas.getBoundingClientRect();
+      const sx = ev.clientX - rect.left, sy = ev.clientY - rect.top;
+      // screen -> world
+      const wx = (sx - canvas.width/2) / st.scale + st.cx;
+      const wy = (canvas.height/2 - sy) / st.scale + st.cy;
+      // nearest station via spatial hash
+      const { stationXY } = st.tier1.bin;
+      const nSt = stationXY.length / 2;
+      const kx = Math.floor((wx-st.bounds.minX)/st.gx), ky = Math.floor((wy-st.bounds.minY)/st.gy);
+      let best = Infinity, bestIdx = 0;
+      for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) {
+        const arr = st.grid.get((kx+dx)*1000+(ky+dy));
         if (!arr) continue;
         for (const si of arr) {
           const ddx = stationXY[si*2]-wx, ddy = stationXY[si*2+1]-wy;
@@ -2474,22 +2535,19 @@ async function showTier1Splash() {
           if (d < best) { best = d; bestIdx = si; }
         }
       }
-      if (bestIdx < 0 || !Number.isFinite(dist[bestIdx])) continue;
-      const time = dist[bestIdx] + Math.sqrt(best)/walkMpm;
-      if (time > 120) continue;
-      const sx = canvas.width/2 + (wx-cx)*scale;
-      const sy = canvas.height/2 - (wy-cy)*scale;
-      const t = Math.min(1, time/60);
-      const r = Math.floor(255*Math.min(1, t*2)), g = Math.floor(255*Math.min(1, (1-t)*2));
-      ctx.fillStyle = `rgba(${r},${g},80,0.55)`;
-      const s = Math.max(2, 800*scale/2);
-      ctx.fillRect(sx-s/2, sy-s/2, s, s);
-    }
-    document.getElementById("splashStatus").textContent = "Loading full map…";
-  } catch(e) { console.warn("[tier1] splash failed:", e); splash.remove(); }
+      st.startIdx = bestIdx;
+      document.getElementById("splashStatus").textContent = "Rendering preview…";
+      setTimeout(() => {
+        _tier1Render();
+        const el = document.getElementById("splashStatus");
+        if (el) el.textContent = "Full data loading in background…";
+      }, 10);
+    });
+  } catch(e) { console.warn("[tier1] splash failed:", e); splash.remove(); _tier1State = null; }
   return splash;
 }
 function hideTier1Splash() {
   const el = document.getElementById("tier1Splash");
+  _tier1State = null; // free tier1 memory
   if (el) { el.style.transition = "opacity 0.5s"; el.style.opacity = "0"; setTimeout(() => el.remove(), 500); }
 }
