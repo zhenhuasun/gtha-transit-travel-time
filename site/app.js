@@ -2218,9 +2218,10 @@ function setOnboardingDone() {
 let onboardingState = null;
 
 function clearOnboarding() {
+  console.log("[onboarding] clearing");
   document.querySelectorAll(".onboarding-overlay, .onboarding-tooltip, .onboarding-dot-highlight").forEach((el) => el.remove());
   document.querySelectorAll(".onboarding-highlight").forEach((el) => el.classList.remove("onboarding-highlight"));
-  if (onboardingState?.cleanup) onboardingState.cleanup();
+  try { if (onboardingState?.cleanup) onboardingState.cleanup(); } catch (e) {}
   onboardingState = null;
 }
 
@@ -2272,8 +2273,9 @@ function startOnboardingStep1() {
   );
 
   // Next -> Step 2, Skip -> done. No other interaction allowed in Step 1.
-  tip.querySelector('[data-act="next"]').onclick = () => {
-    clearOnboarding();
+  const nextBtn = tip.querySelector('[data-act="next"]');
+  if (nextBtn) nextBtn.onclick = () => {
+    console.log("[onboarding] next clicked, going to step 2");
     startOnboardingStep2();
   };
   tip.querySelector('[data-act="skip"]').onclick = () => {
@@ -2285,32 +2287,30 @@ function startOnboardingStep1() {
 
 function startOnboardingStep2() {
   clearOnboarding();
+  console.log("[onboarding] entering step 2");
 
   const overlay = document.createElement("div");
   overlay.className = "onboarding-overlay";
-  overlay.style.pointerEvents = "none"; // Let clicks through to map
   document.body.appendChild(overlay);
 
   const canvas = $("map");
-  canvas.classList.add("onboarding-highlight");
+  if (canvas) canvas.classList.add("onboarding-highlight");
 
-  const rect = canvas.getBoundingClientRect();
+  const rect = canvas ? canvas.getBoundingClientRect() : { left: 20, width: 300, top: 100 };
   const tip = showOnboardingTooltip(
     `<p><strong>Pick a destination.</strong> Click anywhere on the map to see travel time and route details.</p>
      <div class="onboarding-actions">
-       <button type="button" data-act="skip">Skip</button>
+       <button type="button" data-act="back">Back</button>
+       <button type="button" class="primary" data-act="explore">Start exploring</button>
      </div>`,
-    rect.left + rect.width / 2 - 140, rect.top + 20
+    Math.max(12, rect.left + rect.width / 2 - 140), rect.top + 20
   );
-  tip.querySelector('[data-act="skip"]').onclick = () => { clearOnboarding(); setOnboardingDone(); };
+  const backBtn = tip.querySelector('[data-act="back"]');
+  const exploreBtn = tip.querySelector('[data-act="explore"]');
+  if (backBtn) backBtn.onclick = () => { console.log("[onboarding] back to step 1"); startOnboardingStep1(); };
+  if (exploreBtn) exploreBtn.onclick = () => { console.log("[onboarding] done via explore"); clearOnboarding(); setOnboardingDone(); };
 
-  const onMapClick = () => {
-    clearOnboarding();
-    setOnboardingDone();
-  };
-  canvas.addEventListener("click", onMapClick, { once: true });
-
-  onboardingState = { cleanup: () => canvas.removeEventListener("click", onMapClick) };
+  onboardingState = { cleanup: () => {} };
 }
 
 function maybeStartOnboarding() {
