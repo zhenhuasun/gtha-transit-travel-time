@@ -1150,21 +1150,14 @@ function heatSource() {
   return app.heatFrom === "to" && app.to ? app.to : app.from;
 }
 
-let lastRecompute = 0;
 function recompute({ fast = false } = {}) {
   if (!app.from) return;
-  // Throttle during drag: max 5 recomputes/sec
-  if (fast) {
-    const now = performance.now();
-    if (now - lastRecompute < 200) return;
-    lastRecompute = now;
-  }
   app.solution = solveFrom(app.from.point);
   // "to" mode: times TO the destination (reverse Dijkstra), not from it.
   app.heatSolution = heatSource() === app.from ? app.solution : solveTo(app.to.point);
   app.grid = computeGrid(app.heatSolution);
   paintHeat(app.grid, { fast });
-  if (!fast) updatePanel(); // Skip panel update during drag for speed
+  updatePanel();
   requestRender();
 }
 
