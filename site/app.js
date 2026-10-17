@@ -2171,7 +2171,7 @@ async function loadDataWithProgress() {
   const response = await fetch(DATA_URL);
   if (!response.ok) throw new Error(`HTTP ${response.status} loading ${DATA_URL}`);
   const total = Number(CITY.dataBytes) || 0;
-  if (!response.body || !response.body.getReader) return parseBin(await response.arrayBuffer());
+  if (!response.body || !response.body.getReader) { const buf = await response.arrayBuffer(); window._loadBytes = buf.byteLength; const d = parseBin(buf); d._bytes = buf.byteLength; return d; }
   const reader = response.body.getReader();
   const chunks = [];
   let received = 0;
@@ -2184,21 +2184,41 @@ async function loadDataWithProgress() {
   }
   label.textContent = "Preparing the map…";
   const blob = new Blob(chunks);
-  return parseBin(await blob.arrayBuffer());
+  const buf = await blob.arrayBuffer(); window._loadBytes = buf.byteLength;
+  const d = parseBin(buf); d._bytes = buf.byteLength; return d;
 }
 
+const PERF = new URLSearchParams(location.search).has("perf");
+function _pt(label, t0) {
+  if (PERF) console.log(`[load-perf] ${label}: ${(performance.now()-t0).toFixed(1)}ms`);
+}
 async function init() {
+  const _t0 = performance.now();
   resize();
+  const _t1 = performance.now();
   app.data = await loadDataWithProgress();
+  const _t2 = performance.now();
+  _pt("download+parse", _t1);
+  window._loadBytes = app.data._bytes || 0;
+  if (PERF) console.log(`[load-perf] bytes: ${window._loadBytes}`);
   $("loadProgress").hidden = true;
   app.offset = [app.data.meta.bounds[0], app.data.meta.bounds[1]];
+  const _t3 = performance.now();
   app.graph = prepareGraph(app.data);
+  _pt("prepareGraph", _t3);
+  const _t4 = performance.now();
   app.rivers = indexRivers(app.data.rivers);
+  _pt("indexRivers", _t4);
+  const _t5 = performance.now();
   app.paths = buildPaths(app.data);
+  _pt("buildPaths", _t5);
   app.size.width = 0;
   resize();
+  const _t6 = performance.now();
   restoreFromUrl();
+  _pt("restoreFromUrl", _t6);
   renderPlaces();
+  _pt("total-init", _t0);
   maybeShowHint();
   hintArmed = true;
   initSheet();
@@ -2207,10 +2227,32 @@ async function init() {
   new ResizeObserver(resize).observe(canvas);
 }
 
-init().then(() => maybeStartOnboarding()).catch((error) => {
+// Phase 0: regression baseline. Call window._baseline() in console after load.
+// Returns hash of stationTime for 3 fixed origins.
+window._baseline = function() {
+  const origins = [
+    [43.6453, -79.3806], // Union
+    [43.7256, -79.4529], // Yorkdale
+    [43.7754, -79.2578], // Scarborough Town Centre
+  ];
+  const out = {};
+  for (const [lat, lon] of origins) {
+    const sol = solveFrom(toWorld(lat, lon));
+    let h = 0;
+    for (let i = 0; i < sol.stationTime.length; i += 97) {
+      const v = sol.stationTime[i];
+      if (Number.isFinite(v)) h = (h * 31 + Math.round(v * 10)) | 0;
+    }
+    out[`${lat},${lon}`] = (h >>> 0).toString(16);
+  }
+  console.log("[baseline]", JSON.stringify(out));
+  return out;
+};
+init().catch((error) => {
   console.error(error);
   $("loadProgress").hidden = true;
   $("tripFrom").textContent = "Couldn't load the network.";
+  try { clearOnboarding(); } catch {}
 });
 
 /* ---- Onboarding tutorial ---- */
@@ -2276,7 +2318,7 @@ function showOnboardingTooltip(html, x, y) {
 
 function startOnboardingStep1() {
   clearOnboarding();
-  if (!app.from) return;
+  const dataReady = !!(app.from && app.data);
 
   logOnboardingEvent("start");
   // Scroll search into view (user may be scrolled down from a previous session)
@@ -2292,8 +2334,8 @@ function startOnboardingStep1() {
   const searchForm = $("searchForm");
   if (searchForm) searchForm.classList.add("onboarding-highlight");
 
-  // Highlight green dot: absolute inside map-stage so it scrolls with the map
-  try {
+  // Highlight green dot (only if data ready)
+  if (dataReady) try {
     const [sx, sy] = project(app.from.point);
     const stageEl2 = document.querySelector(".map-stage");
     const host = stageEl2 || document.body;
@@ -2312,7 +2354,7 @@ function startOnboardingStep1() {
   const tipX = Math.max(12, Math.min(Math.max(0, srect.left), window.innerWidth - 300));
   const tipY = srect.bottom > 0 && srect.top < window.innerHeight ? srect.bottom + 12 : Math.max(12, window.innerHeight / 3);
   const tip = showOnboardingTooltip(
-    `<p><strong>Set your start.</strong> <em>See how far you can go from anywhere in the GTHA by transit.</em><br>Drag the green dot on the map, or search for an address.</p>
+    `<p><strong>Set your start.</strong> <em>See how far you can go from anywhere in the GTHA by transit.</em><br>Drag the green dot on the map, or search for an address.${dataReady ? "" : '<br><span style="color:#f59e0b;">● Map loading…</span>'}</p>
      <div class="onboarding-actions">
        <button type="button" class="primary" data-act="next">Next</button>
        <button type="button" data-act="skip">Skip tour</button>
@@ -2375,14 +2417,15 @@ function startOnboardingStep2() {
 
 function maybeStartOnboarding() {
   if (onboardingDone()) return;
-  // Wait for map to be ready
-  const check = setInterval(() => {
-    if (app.from && app.grid) {
-      clearInterval(check);
-      startOnboardingStep1();
-    }
-  }, 500);
-  setTimeout(() => clearInterval(check), 30000);
+  // Phase 1: Start as soon as DOM is ready, don't wait for full data.
+  // Step1 shows "Map loading..." if app.data is not ready yet.
+  startOnboardingStep1();
+}
+// Auto-start on DOM ready (decoupled from init)
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => setTimeout(maybeStartOnboarding, 800));
+} else {
+  setTimeout(maybeStartOnboarding, 800);
 }
 
 // Re-trigger button
