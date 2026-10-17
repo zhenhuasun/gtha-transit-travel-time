@@ -1275,10 +1275,14 @@ output {
   text-align: center;
 }
 
-/* Hanging indent: wrapped line names align with the first line, not the badge. */
+/* Badge + name: inline-block keeps table borders intact (flex on td breaks them). */
 .lines-table td:first-child {
-  display: flex;
-  align-items: flex-start;
+  vertical-align: middle;
+}
+.lines-table .line-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
 }
 
 .ranking-table td:first-child,
