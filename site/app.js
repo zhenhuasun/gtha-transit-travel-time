@@ -2295,8 +2295,8 @@ function startOnboardingStep2() {
   console.log("[onboarding] entering step 2");
 
   // Scroll map into view first (user may have scrolled down in step 1)
-  const stage = document.querySelector(".map-stage");
-  if (stage) stage.scrollIntoView({ behavior: "smooth", block: "center" });
+  const stageEl = document.querySelector(".map-stage");
+  if (stageEl) stageEl.scrollIntoView({ behavior: "smooth", block: "center" });
 
   const overlay = document.createElement("div");
   overlay.className = "onboarding-overlay";
