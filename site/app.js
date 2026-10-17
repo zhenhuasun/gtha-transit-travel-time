@@ -2244,6 +2244,10 @@ function startOnboardingStep1() {
   clearOnboarding();
   if (!app.from) return;
 
+  // Scroll search into view (user may be scrolled down from a previous session)
+  const sf = $("searchForm");
+  if (sf) sf.scrollIntoView({ behavior: "smooth", block: "center" });
+
   // Overlay
   const overlay = document.createElement("div");
   overlay.className = "onboarding-overlay";
@@ -2253,28 +2257,32 @@ function startOnboardingStep1() {
   const searchForm = $("searchForm");
   if (searchForm) searchForm.classList.add("onboarding-highlight");
 
-  // Highlight green dot via positioned div (non-fatal if project fails)
+  // Highlight green dot: absolute inside map-stage so it scrolls with the map
   try {
     const [sx, sy] = project(app.from.point);
-    const canvas = $("mapCanvas");
-    const rect = canvas.getBoundingClientRect();
+    const stageEl2 = document.querySelector(".map-stage");
+    const host = stageEl2 || document.body;
+    if (stageEl2 && getComputedStyle(stageEl2).position === "static") stageEl2.style.position = "relative";
     const dotHl = document.createElement("div");
     dotHl.className = "onboarding-dot-highlight";
-    dotHl.style.cssText = `position:fixed;left:${rect.left + sx - 20}px;top:${rect.top + sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);`;
-    document.body.appendChild(dotHl);
+    // sx,sy are relative to canvas top-left; canvas fills the stage
+    dotHl.style.cssText = `position:absolute;left:${sx - 20}px;top:${sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);`;
+    host.appendChild(dotHl);
   } catch (e) { console.warn("onboarding dot highlight failed", e); }
 
   // Tooltip near search (centered, guaranteed visible)
   // Step 1 is purely instructional: user can only proceed via Next/Skip buttons
-  const srect = searchForm.getBoundingClientRect();
-  const tipX = Math.max(12, Math.min(srect.left, window.innerWidth - 300));
+  // Re-measure after scroll settles
+  const srect = $("searchForm").getBoundingClientRect();
+  const tipX = Math.max(12, Math.min(Math.max(0, srect.left), window.innerWidth - 300));
+  const tipY = srect.bottom > 0 && srect.top < window.innerHeight ? srect.bottom + 12 : Math.max(12, window.innerHeight / 3);
   const tip = showOnboardingTooltip(
     `<p><strong>Set your start.</strong> Drag the green dot on the map, or search for an address.</p>
      <div class="onboarding-actions">
        <button type="button" class="primary" data-act="next">Next</button>
        <button type="button" data-act="skip">Skip tour</button>
      </div>`,
-    tipX, srect.bottom + 12
+    tipX, tipY
   );
 
   // Next -> Step 2, Skip -> done. No other interaction allowed in Step 1.
