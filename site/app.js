@@ -1161,7 +1161,7 @@ let _activeWorkerGen = 0;
 function initWorker() {
   if (_worker || _workerFailed) return;
   try {
-    _worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+    _worker = new Worker(new URL('./worker.js?v=f1407d48', import.meta.url), { type: 'module' });
   } catch (e) {
     console.warn('[worker] construction failed, using main thread:', e);
     _workerFailed = true; return;
