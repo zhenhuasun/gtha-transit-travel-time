@@ -2335,7 +2335,6 @@ async function init() {
   app.offset = [app.data.meta.bounds[0], app.data.meta.bounds[1]];
   const _t3 = performance.now();
   app.graph = prepareGraph(app.data);
-  initWorker(); // async, non-blocking; falls back to main thread on failure
   _pt("prepareGraph", _t3);
   const _t4 = performance.now();
   app.rivers = indexRivers(app.data.rivers);
@@ -2343,6 +2342,7 @@ async function init() {
   const _t5 = performance.now();
   app.paths = buildPaths(app.data);
   _pt("buildPaths", _t5);
+  initWorker(); // async, non-blocking; falls back to main thread on failure
   app.size.width = 0;
   resize();
   const _t6 = performance.now();
