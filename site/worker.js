@@ -118,6 +118,29 @@ function solveFrom(point, includeBus) {
   return { point, dist, prev, seedWalk, stationTime, stationBest };
 }
 
+function smoothGrid(times, cols, rows) {
+  const out = new Float32Array(times.length).fill(NaN);
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const index = row * cols + col;
+      if (Number.isNaN(times[index])) continue;
+      let sum = 0, weight = 0;
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const r = row + dy, c = col + dx;
+          if (r < 0 || c < 0 || r >= rows || c >= cols) continue;
+          const v = times[r * cols + c];
+          if (Number.isNaN(v)) continue;
+          const w = dx === 0 && dy === 0 ? 2 : 1;
+          sum += v * w; weight += w;
+        }
+      }
+      out[index] = weight ? sum / weight : NaN;
+    }
+  }
+  return out;
+}
+
 function computeGrid(solution) {
   const { cellRow, cellCol, cellXY, cellAccPtr, cellAccStation, cellAccMeters } = G.cells;
   const { gridCols: cols, gridRows: rows } = G.meta;
@@ -134,7 +157,8 @@ function computeGrid(solution) {
     if (direct < best) best = direct;
     times[cellRow[c] * cols + cellCol[c]] = Math.min(best, 180);
   }
-  return { times, cols, rows };
+  const smooth = smoothGrid(times, cols, rows);
+  return { times, smooth, cols, rows };
 }
 
 self.onmessage = (ev) => {
@@ -162,9 +186,10 @@ self.onmessage = (ev) => {
         solution: { point: solution.point, dist: solution.dist, prev: solution.prev,
                     seedWalk: solution.seedWalk, stationTime: solution.stationTime,
                     stationBest: solution.stationBest },
-        grid: { times: grid.times, cols: grid.cols, rows: grid.rows },
+        grid: { times: grid.times, smooth: grid.smooth, cols: grid.cols, rows: grid.rows },
       }, [solution.dist.buffer, solution.prev.buffer, solution.seedWalk.buffer,
-          solution.stationTime.buffer, solution.stationBest.buffer, grid.times.buffer]);
+          solution.stationTime.buffer, solution.stationBest.buffer,
+          grid.times.buffer, grid.smooth.buffer]);
     }
   } catch (err) {
     if (msg.type === 'init') self.postMessage({ type: 'init-error', error: String(err?.message || err) });
