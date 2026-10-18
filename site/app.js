@@ -2403,7 +2403,7 @@ function startOnboardingStep1(fromBack = false) {
         if (!document.querySelector(".onboarding-dot-highlight")) {
           const dotHl = document.createElement("div");
           dotHl.className = "onboarding-dot-highlight";
-          dotHl.style.cssText = `position:absolute;left:${sx - 20}px;top:${sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);animation:ob-pulse 1.6s ease-out;`;
+          dotHl.style.cssText = `position:absolute;left:${sx - 20}px;top:${sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);animation:onboarding-pulse 1.6s ease-in-out infinite;`;
           host.appendChild(dotHl);
         }
       } catch (e) {}
