@@ -1155,8 +1155,9 @@ let _worker = null;
 let _workerReady = false;
 let _workerFailed = false;
 let _workerGen = 0;
-let _pendingWorkerReq = null; // {point, includeBus} waiting for ready
+let _pendingWorkerReq = null; // {point, includeBus} waiting for ready or busy
 let _activeWorkerGen = 0;
+let _workerBusy = false; // true while Worker is computing
 
 function initWorker() {
   if (_worker || _workerFailed) return;
@@ -1230,28 +1231,44 @@ function initWorker() {
 
 function _requestWorkerSolve(point, includeBus) {
   if (!_workerReady || _workerFailed || !_worker) return false;
+  // If Worker is busy, just keep the latest request (don't queue)
+  if (_workerBusy) {
+    _pendingWorkerReq = { point: point.slice(), includeBus };
+    return true; // accepted (will be sent when Worker is free)
+  }
   const gen = ++_workerGen;
   _activeWorkerGen = gen;
+  _workerBusy = true;
   try {
     _worker.postMessage({ type: 'solve', gen, point: point.slice(), includeBus });
     return true;
   } catch (e) {
     console.warn('[worker] postMessage failed:', e);
+    _workerBusy = false;
     return false;
   }
 }
 
 function _onWorkerResult(m) {
+  _workerBusy = false;
   // Stale protection: only latest gen updates UI
-  if (m.gen !== _activeWorkerGen) { if (PERF) console.log('[worker] stale result discarded gen=' + m.gen); return; }
-  const t0 = performance.now();
+  if (m.gen !== _activeWorkerGen) {
+    if (PERF) console.log('[worker] stale result discarded gen=' + m.gen);
+  } else {
+    const t0 = performance.now();
   app.solution = m.solution;
   app.heatSolution = app.solution; // simplified: heat from origin (full to-mode handled separately if needed)
   app.grid = { times: m.grid.times, smooth: m.grid.smooth, cols: m.grid.cols, rows: m.grid.rows, contours: {} };
-  paintHeat(app.grid, { fast: true });
-  updatePanel();
-  requestRender();
-  if (PERF || window.__PERF_LOG) console.log(`[perf] worker-result gen=${m.gen} paint+panel=${(performance.now()-t0).toFixed(1)}ms`);
+    paintHeat(app.grid, { fast: true });
+    updatePanel();
+    requestRender();
+    if (PERF || window.__PERF_LOG) console.log(`[perf] worker-result gen=${m.gen} paint+panel=${(performance.now()-t0).toFixed(1)}ms`);
+  }
+  // Send pending request if any (latest only)
+  if (_pendingWorkerReq) {
+    const r = _pendingWorkerReq; _pendingWorkerReq = null;
+    _requestWorkerSolve(r.point, r.includeBus);
+  }
 }
 
 function _recomputeSync(req) {
@@ -1274,7 +1291,11 @@ function recompute({ fast = false } = {}) {
   // Note: reverse (to-destination) mode still uses sync path for now
   const useWorker = _workerReady && !_workerFailed && heatSource() === app.from;
   if (useWorker) {
-    if (_requestWorkerSolve(app.from.point, app.includeBus)) return;
+    if (_requestWorkerSolve(app.from.point, app.includeBus)) {
+      // Worker will compute async; redraw marker immediately so it follows the pointer
+      requestRender();
+      return;
+    }
     // postMessage failed -> fall through to sync
   } else if (!_workerFailed && _worker) {
     // Worker initializing: queue latest request
