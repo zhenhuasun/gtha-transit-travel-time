@@ -2371,7 +2371,7 @@ function startOnboardingStep1(fromBack = false) {
     tipY = Math.max(12, vh - estH - 20); // fallback: pin to visible area
   }
   const tip = showOnboardingTooltip(
-    `<p><strong>Set your start.</strong> <em>See how far you can go from anywhere in the GTHA by transit.</em><br>Drag the green dot on the map, or search for an address.${dataReady ? "" : '<br><span style="color:#f59e0b;">● Map loading…</span>'}</p>
+    `<p><strong>Set your start.</strong> <em>See how far you can go from anywhere in the GTHA by transit.</em><br>Drag the green dot on the map, or search for an address.${dataReady ? "" : '<br><span class="ob-loading" style="color:#f59e0b;">● Map loading…</span>'}</p>
      <div class="onboarding-actions">
        <button type="button" class="primary" data-act="next">Next</button>
        <button type="button" data-act="skip">Skip tour</button>
@@ -2386,7 +2386,33 @@ function startOnboardingStep1(fromBack = false) {
     startOnboardingStep2();
   };
   tip.querySelector('[data-act="skip"]').onclick = () => { logOnboardingEvent("skip"); clearOnboarding(); setOnboardingDone(); };
-  onboardingState = { cleanup: () => {} };
+  // Watch for data becoming ready: update tooltip and add green dot highlight
+  const _watcher = setInterval(() => {
+    if (app.from && app.data) {
+      clearInterval(_watcher);
+      // Remove loading indicator
+      const loadEl = tip.querySelector(".ob-loading");
+      if (loadEl) loadEl.remove();
+      // Add green dot highlight now that we have coordinates
+      try {
+        const [sx, sy] = project(app.from.point);
+        const stageEl = document.querySelector(".map-stage");
+        const host = stageEl || document.body;
+        if (stageEl && getComputedStyle(stageEl).position === "static") stageEl.style.position = "relative";
+        // Don't duplicate if already added
+        if (!document.querySelector(".onboarding-dot-highlight")) {
+          const dotHl = document.createElement("div");
+          dotHl.className = "onboarding-dot-highlight";
+          dotHl.style.cssText = `position:absolute;left:${sx - 20}px;top:${sy - 20}px;width:40px;height:40px;border-radius:50%;z-index:2001;pointer-events:none;box-shadow:0 0 0 3px #fff,0 0 24px rgba(255,255,255,0.8);animation:ob-pulse 1.6s ease-out;`;
+          host.appendChild(dotHl);
+        }
+      } catch (e) {}
+    }
+  }, 500);
+  // Stop watching after 30s
+  setTimeout(() => clearInterval(_watcher), 30000);
+  const _prevCleanup = onboardingState?.cleanup;
+  onboardingState = { cleanup: () => { clearInterval(_watcher); try { _prevCleanup && _prevCleanup(); } catch {} } };
 }
 
 function startOnboardingStep2() {
