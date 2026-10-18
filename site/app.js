@@ -1247,7 +1247,7 @@ function _onWorkerResult(m) {
   const t0 = performance.now();
   app.solution = m.solution;
   app.heatSolution = app.solution; // simplified: heat from origin (full to-mode handled separately if needed)
-  app.grid = { times: m.grid.times, cols: m.grid.cols, rows: m.grid.rows };
+  app.grid = { times: m.grid.times, cols: m.grid.cols, rows: m.grid.rows, contours: {} };
   paintHeat(app.grid, { fast: true });
   updatePanel();
   requestRender();
