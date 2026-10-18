@@ -1158,6 +1158,23 @@ let _workerGen = 0;
 let _pendingWorkerReq = null; // {point, includeBus} waiting for ready or busy
 let _activeWorkerGen = 0;
 let _workerBusy = false; // true while Worker is computing
+let _lastPaintTime = 0;
+let _pendingPaint = null; // {solution, grid, gen} waiting for paint throttle
+let _paintTimer = null;
+function _flushPendingPaint() {
+  _paintTimer = null;
+  if (!_pendingPaint) return;
+  const p = _pendingPaint; _pendingPaint = null;
+  _lastPaintTime = performance.now();
+  const t0 = performance.now();
+  app.solution = p.solution;
+  app.heatSolution = p.solution;
+  app.grid = { times: p.grid.times, smooth: p.grid.smooth, cols: p.grid.cols, rows: p.grid.rows, contours: {} };
+  paintHeat(app.grid, { fast: true });
+  updatePanel();
+  requestRender();
+  if (PERF || window.__PERF_LOG) console.log(`[perf] paint-flush gen=${p.gen} paint+panel=${(performance.now()-t0).toFixed(1)}ms`);
+}
 
 function initWorker() {
   if (_worker || _workerFailed) return;
@@ -1259,10 +1276,15 @@ function _onWorkerResult(m) {
   app.solution = m.solution;
   app.heatSolution = app.solution; // simplified: heat from origin (full to-mode handled separately if needed)
   app.grid = { times: m.grid.times, smooth: m.grid.smooth, cols: m.grid.cols, rows: m.grid.rows, contours: {} };
-    paintHeat(app.grid, { fast: true });
-    updatePanel();
-    requestRender();
-    if (PERF || window.__PERF_LOG) console.log(`[perf] worker-result gen=${m.gen} paint+panel=${(performance.now()-t0).toFixed(1)}ms`);
+    // Throttle paint to ~10fps during drag: keep latest, paint at most every 100ms
+    const now = performance.now();
+    _pendingPaint = { solution: m.solution, grid: m.grid, gen: m.gen };
+    if (now - _lastPaintTime >= 100) {
+      _flushPendingPaint();
+    } else if (!_paintTimer) {
+      _paintTimer = setTimeout(_flushPendingPaint, 100 - (now - _lastPaintTime));
+    }
+    if (PERF || window.__PERF_LOG) console.log(`[perf] worker-result gen=${m.gen} queued`);
   }
   // Send pending request if any (latest only)
   if (_pendingWorkerReq) {
