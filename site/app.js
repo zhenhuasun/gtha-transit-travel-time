@@ -1150,8 +1150,138 @@ function heatSource() {
   return app.heatFrom === "to" && app.to ? app.to : app.from;
 }
 
+/* ---- Web Worker for Dijkstra+computeGrid (Phase 3) ---- */
+let _worker = null;
+let _workerReady = false;
+let _workerFailed = false;
+let _workerGen = 0;
+let _pendingWorkerReq = null; // {point, includeBus} waiting for ready
+let _activeWorkerGen = 0;
+
+function initWorker() {
+  if (_worker || _workerFailed) return;
+  try {
+    _worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+  } catch (e) {
+    console.warn('[worker] construction failed, using main thread:', e);
+    _workerFailed = true; return;
+  }
+  const timeout = setTimeout(() => {
+    if (!_workerReady) {
+      console.warn('[worker] init timeout, falling back to main thread');
+      _workerFailed = true;
+      try { _worker.terminate(); } catch {}
+      _worker = null;
+      if (_pendingWorkerReq) { const r = _pendingWorkerReq; _pendingWorkerReq = null; _recomputeSync(r); }
+    }
+  }, 8000);
+  _worker.onmessage = (ev) => {
+    const m = ev.data;
+    if (m.type === 'ready') {
+      clearTimeout(timeout);
+      _workerReady = true;
+      if (PERF) console.log('[worker] ready');
+      if (_pendingWorkerReq) { const r = _pendingWorkerReq; _pendingWorkerReq = null; _requestWorkerSolve(r.point, r.includeBus); }
+    } else if (m.type === 'init-error') {
+      clearTimeout(timeout);
+      console.warn('[worker] init-error:', m.error);
+      _workerFailed = true; _worker = null;
+    } else if (m.type === 'result') {
+      _onWorkerResult(m);
+    } else if (m.type === 'solve-error') {
+      // Business logic error: log, don't fallback, don't update UI
+      console.warn('[worker] solve-error gen=' + m.gen + ':', m.error);
+    }
+  };
+  _worker.onerror = (e) => {
+    console.warn('[worker] runtime error, falling back:', e.message);
+    _workerFailed = true; _workerReady = false;
+    try { _worker.terminate(); } catch {}
+    _worker = null;
+    // Fallback: recompute synchronously for current position
+    if (app.from) _recomputeSync({ point: app.from.point, includeBus: app.includeBus });
+  };
+  // Send init payload (copied, not transferred, for safety)
+  try {
+    const g = app.graph, d = app.data;
+    _worker.postMessage({ type: 'init', payload: {
+      graph: { count: g.count, offsets: g.offsets.slice(), targets: g.targets.slice(),
+               weights: g.weights.slice(), station: g.station.slice(), wait: g.wait.slice(),
+               access: g.access.slice(), isBus: g.isBus.slice() },
+      stations: d.stations.map(st => st.point.slice()),
+      stationStates: d.stationStates.map(a => a.slice()),
+      stationUsable: Array.from({length: d.stations.length}, (_, i) => { try { return stationUsable(i); } catch { return true; } }),
+      cells: { cellRow: d.bin.cellRow.slice(), cellCol: d.bin.cellCol.slice(),
+               cellXY: d.bin.cellXY.slice(), cellAccPtr: d.bin.cellAccPtr.slice(),
+               cellAccStation: d.bin.cellAccStation.slice(), cellAccMeters: d.bin.cellAccMeters.slice() },
+      meta: { gridCols: d.meta.gridCols, gridRows: d.meta.gridRows,
+              originStationCount: d.meta.originStationCount,
+              walkMetersPerMinute: d.meta.walkMetersPerMinute },
+      rivers: Array.from(app.rivers.entries()),
+      bridges: (d.bridges ?? []).slice(),
+    }});
+  } catch (e) {
+    console.warn('[worker] init postMessage failed:', e);
+    _workerFailed = true;
+    try { _worker.terminate(); } catch {}
+    _worker = null;
+  }
+}
+
+function _requestWorkerSolve(point, includeBus) {
+  if (!_workerReady || _workerFailed || !_worker) return false;
+  const gen = ++_workerGen;
+  _activeWorkerGen = gen;
+  try {
+    _worker.postMessage({ type: 'solve', gen, point: point.slice(), includeBus });
+    return true;
+  } catch (e) {
+    console.warn('[worker] postMessage failed:', e);
+    return false;
+  }
+}
+
+function _onWorkerResult(m) {
+  // Stale protection: only latest gen updates UI
+  if (m.gen !== _activeWorkerGen) { if (PERF) console.log('[worker] stale result discarded gen=' + m.gen); return; }
+  const t0 = performance.now();
+  app.solution = m.solution;
+  app.heatSolution = app.solution; // simplified: heat from origin (full to-mode handled separately if needed)
+  app.grid = { times: m.grid.times, cols: m.grid.cols, rows: m.grid.rows };
+  paintHeat(app.grid, { fast: true });
+  updatePanel();
+  requestRender();
+  if (PERF || window.__PERF_LOG) console.log(`[perf] worker-result gen=${m.gen} paint+panel=${(performance.now()-t0).toFixed(1)}ms`);
+}
+
+function _recomputeSync(req) {
+  // Fallback synchronous path (original logic)
+  const t0 = performance.now();
+  app.solution = solveFrom(req.point);
+  const t1 = performance.now();
+  app.heatSolution = app.solution;
+  app.grid = computeGrid(app.heatSolution);
+  const t2 = performance.now();
+  paintHeat(app.grid, { fast: true });
+  updatePanel();
+  requestRender();
+  if (window.__PERF_LOG) console.log(`[perf] sync-fallback dijkstra=${(t1-t0).toFixed(1)}ms grid=${(t2-t1).toFixed(1)}ms`);
+}
+
 function recompute({ fast = false } = {}) {
   if (!app.from) return;
+  // Phase 3: Try Worker for async compute (non-blocking)
+  // Note: reverse (to-destination) mode still uses sync path for now
+  const useWorker = _workerReady && !_workerFailed && heatSource() === app.from;
+  if (useWorker) {
+    if (_requestWorkerSolve(app.from.point, app.includeBus)) return;
+    // postMessage failed -> fall through to sync
+  } else if (!_workerFailed && _worker) {
+    // Worker initializing: queue latest request
+    _pendingWorkerReq = { point: app.from.point.slice(), includeBus: app.includeBus };
+    return;
+  }
+  // Sync fallback (Worker unavailable or failed)
   const t0 = performance.now();
   app.solution = solveFrom(app.from.point);
   const t1 = performance.now();
@@ -2205,6 +2335,7 @@ async function init() {
   app.offset = [app.data.meta.bounds[0], app.data.meta.bounds[1]];
   const _t3 = performance.now();
   app.graph = prepareGraph(app.data);
+  initWorker(); // async, non-blocking; falls back to main thread on failure
   _pt("prepareGraph", _t3);
   const _t4 = performance.now();
   app.rivers = indexRivers(app.data.rivers);
