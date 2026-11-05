@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 CITIES_DIR = ROOT / "cities"
 
-RAIL_NOUN = {"tram": "tram", "metro": "subway", "metro+tram": "subway and tram", "rail": "train"}
+RAIL_NOUN = {"tram": "tram", "metro": "subway", "metro+tram": "subway and tram", "rail": "transit"}
 RAIL_LABEL = {"tram": "Tram", "metro": "Subway", "metro+tram": "Subway and tram", "rail": "Train"}
 RAIL_STATIONS = {"tram": "tram stations", "metro": "subway stations", "metro+tram": "subway and tram stations",
                  "rail": "train, subway, streetcar, LRT stations"}

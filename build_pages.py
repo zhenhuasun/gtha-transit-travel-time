@@ -12,18 +12,20 @@ import json
 from datetime import date
 from pathlib import Path
 from string import Template
+from urllib.parse import urlparse
 
 from cities import load_cities
 
 ROOT = Path(__file__).resolve().parent
 SITE = ROOT / "site"
-SITE_URL = "https://zhenhuasun.github.io/ttc-travel-time/"
-GITHUB_URL = "https://github.com/zhenhuasun/ttc-travel-time"
+SITE_URL = "https://zhenhuasun.github.io/gtha-transit-travel-time/"
+SITE_PATH = urlparse(SITE_URL).path.rstrip("/")  # "/gtha-transit-travel-time" (project Pages, not domain root)
+GITHUB_URL = "https://github.com/zhenhuasun/gtha-transit-travel-time"
 X_URL = "https://x.com/CamilleRoux"
 LINKEDIN_URL = "https://www.linkedin.com/in/camilleroux"
 BLUESKY_URL = "https://bsky.app/profile/camilleroux.com"
 AUTHOR_URL = "https://www.camilleroux.com/"
-SITE_NAME = "Within Tram Reach"
+SITE_NAME = "GTHA by Transit"
 PUBLISHER_NAME = "zhenhuasun"
 PUBLISHER_URL = "https://github.com/zhenhuasun"
 LICENCES = {
@@ -138,7 +140,7 @@ def head(*, title: str, description: str, url: str, base: str, image: str | None
             f'    <meta property="og:url" content="{url}" />',
             *image_tags,
             f'    <meta property="article:author" content="{author_url}" />',
-            f'    <meta property="article:published_time" content="{published}T08:00:00+02:00" />',
+            f'    <meta property="article:published_time" content="{published}T08:00:00-04:00" />',
             '    <meta name="twitter:card" content="summary_large_image" />',
             f'    <meta name="twitter:title" content="{title_text}" />',
             f'    <meta name="twitter:description" content="{esc(description)}" />',
@@ -157,13 +159,22 @@ def header(base: str) -> str:
     </header>"""
 
 
-def footer(base: str, data_credit: str, geocoder: str = "ban") -> str:
+def edition_line(city: dict | None = None) -> str:
+    """Footer author line: per-city when the page is one city's, site-wide otherwise."""
+    if city and city.get("slug") != "gtha":
+        return (f'This {city["name"]} edition is published by '
+                f'<a href="{PUBLISHER_URL}" rel="author">zhenhuasun</a>.')
+    return f'The {SITE_NAME} was created by <a href="{PUBLISHER_URL}">Joshua Sun</a>.'
+
+
+def footer(base: str, data_credit: str, geocoder: str = "ban", edition: str | None = None) -> str:
     return f"""    <footer class="site-footer">
       <div class="footer-inner">
         <p class="footer-author">
+          {edition or edition_line()}
           Forked from <a href="https://github.com/camilleroux/montpellier-temps-transport">montpellier-temps-transport</a>
           by Camille Roux — the concept and engineering are his work, based on the idea by Anthony Castrio and
-          Jules Grandin. This Toronto edition is published by <a href="{PUBLISHER_URL}" rel="author">zhenhuasun</a>.
+          Jules Grandin.
         </p>
         <p class="footer-links">
           <a href="{GITHUB_URL}" rel="noopener">Source code on GitHub</a> ·
@@ -199,19 +210,26 @@ def faq_schema(entries: list[tuple]) -> dict:
     }
 
 
-def credits_entry(question: str) -> tuple:
+def credits_entry(question: str, city: dict) -> tuple:
     """« Who made this? »: the original authors first, then the author of these maps."""
+    if city.get("slug") == "gtha":
+        credit = "This GTHA edition was created by Joshua Sun, using GO Transit and municipal transit schedules."
+        credit_html = ('This GTHA edition was created by '
+                       f'<a href="{PUBLISHER_URL}">Joshua Sun</a>, using GO Transit and municipal transit schedules.')
+    else:
+        credit = "This Toronto edition is a fork by zhenhuasun, using TTC schedules."
+        credit_html = ('This Toronto edition is a fork by '
+                       f'<a href="{PUBLISHER_URL}">zhenhuasun</a>, using TTC schedules.')
     text = (
         "The idea comes from Anthony Castrio's NYC Transit Time Cartogram, later adapted to Paris by Jules Grandin "
-        '("C\'est encore loin ?"), then extended by Camille Roux \u2014 the concept and engineering are his work. '
-        "This Toronto edition is a fork by zhenhuasun, using TTC schedules. The code is open on GitHub."
+        f'("C\'est encore loin ?"), then extended by Camille Roux \u2014 the concept and engineering are his work. '
+        f"{credit} The code is open on GitHub."
     )
     html_text = (
         'The idea comes from <a href="https://castrio.me/nyc/">NYC Transit Time Cartogram</a> by Anthony Castrio, later '
         'adapted to Paris by Jules Grandin (<a href="https://julesgrandin.github.io/paris-temps-transport/">C\'est encore '
         f'loin&nbsp;?</a>), then extended by <a href="https://github.com/camilleroux/montpellier-temps-transport">Camille Roux</a> '
-        '\u2014 the concept and engineering are his work. This Toronto edition is a fork by '
-        f'<a href="{PUBLISHER_URL}">zhenhuasun</a>, using TTC schedules. The code is open on '
+        f'\u2014 the concept and engineering are his work. {credit_html} The code is open on '
         f'<a href="{GITHUB_URL}">GitHub</a>.'
     )
     return (question, text, html_text)
@@ -260,7 +278,10 @@ def city_faq(city: dict) -> list[tuple]:
         ),
         (
             f"Are buses included in {name}?",
-            f"Yes, optionally: check \"{city['busLabel']}\" under the map. By default, only {rail} are shown. "
+            "Yes. Buses are included by default; use \"Bus\" under the map to hide them. "
+            "Waiting time at infrequent bus stops is capped at 15 minutes."
+            if city.get("defaultBus")
+            else f"Yes, optionally: check \"{city['busLabel']}\" under the map. By default, only {rail} are shown. "
             "Waiting time at infrequent bus stops is capped at 15 minutes.",
         ),
         (
@@ -270,7 +291,7 @@ def city_faq(city: dict) -> list[tuple]:
             + (", plus 1 minute to reach the subway platform" if any(line["mode"] == "metro" for line in lines) else "")
             + '. No real-time data or disruptions: this is the city "on paper".',
         ),
-        credits_entry(f"Who made this map of {name}?"),
+        credits_entry(f"Who made this map of {name}?", city),
     ]
 
 
@@ -296,9 +317,11 @@ def render_city(template: Template, cities: list[dict], city: dict) -> str:
     base = "../"
     stats = city["stats"]
     rail_noun = city["railNoun"]
+    # Single-network cities name their network; multi-agency cities (GTHA) do not.
+    network_suffix = f" ({city['network']} network)" if not city.get("gtfsExtra") else ""
     description = (
         f"{rail_noun} travel-time map of {city['name']}: pick a starting point and the whole city is colored "
-        f"by how long it takes to get there ({city['network']} network)."
+        f"by how long it takes to get there{network_suffix}."
     )
     faq = city_faq(city)
     graph = [
@@ -374,7 +397,8 @@ def render_city(template: Template, cities: list[dict], city: dict) -> str:
             author_url=PUBLISHER_URL,
         ),
         "header": header(base),
-        "footer": footer(base, data_credit, city["geocoder"]),
+        "site_name": SITE_NAME,
+        "footer": footer(base, data_credit, city["geocoder"], edition_line(city)),
         "base": base,
         "city_config": json.dumps(config, ensure_ascii=False).replace("</", "<\\/"),
         "original_map": original_map(city),
@@ -400,27 +424,36 @@ def render_city(template: Template, cities: list[dict], city: dict) -> str:
 def render_home(template: Template, cities: list[dict]) -> str:
     """Single-city site: the home page is a splash screen for the one city map."""
     city = cities[0]
+    network_suffix = f" ({city['network']} network)" if not city.get("gtfsExtra") else ""
     description = (
         f"{city['railNoun']} travel-time map of {city['name']}: pick a starting point and the whole city is colored "
-        f"by how long it takes to get there ({city['network']} network)."
+        f"by how long it takes to get there{network_suffix}."
+    )
+    timetable_source = (
+        "GO Transit and municipal transit" if city.get("slug") == "gtha" else f"the {city['network']} network"
+    )
+    buses_answer = (
+        "Yes. Train, subway, streetcar, and bus services can all be included in travel-time calculations."
+        if city.get("defaultBus")
+        else "Yes, optionally on the map. By default, only subways and trams are shown, "
+        "to highlight the backbone of the network."
     )
     faq = [
         (
             "Where do the travel times come from?",
-            f"From the official scheduled timetables of the {city['network']} network, published as open data "
+            f"From the official scheduled timetables of {timetable_source}, published as open data "
             "in GTFS format. They cover an ordinary weekday, between 7 a.m. and 8 p.m.",
         ),
         (
-            "Are the displayed times reliable?",
+            "How accurate are the travel times?",
             'These are "on paper" averages: walk to the stop, waiting time equal to half the interval between '
             "two services, scheduled time between stops, and transfers. No real-time data or disruptions.",
         ),
         (
             "Are buses included?",
-            "Yes, optionally on the map. By default, only subways and trams are shown, "
-            "to highlight the backbone of the network.",
+            buses_answer,
         ),
-        credits_entry("Who made this site?"),
+        credits_entry("Who made this site?", city),
     ]
     graph = [
         {
@@ -467,9 +500,9 @@ def gtfs_feeds(city: dict) -> list[dict]:
         "network": city.get("gtfsNetwork", city["network"]),
         "dataset": city["gtfsDataset"],
         "licence": city["gtfsLicence"],
-        "fetchedAt": city["sources"]["gtfs"].get("fetchedAt"),
+        "fetchedAt": city["sources"]["gtfs"].get("fetchedAt") or city["sources"]["gtfs"].get("fetched"),
     }
-    fetched = {extra["network"]: extra.get("fetchedAt") for extra in city["sources"].get("gtfsExtra", [])}
+    fetched = {extra["network"]: (extra.get("fetchedAt") or extra.get("fetched")) for extra in city["sources"].get("gtfsExtra", [])}
     extras = [{**extra, "fetchedAt": fetched.get(extra["network"])} for extra in city.get("gtfsExtra", [])]
     return [main, *extras]
 
@@ -502,7 +535,7 @@ def render_legal(cities: list[dict]) -> str:
     return f"""<!doctype html>
 <html lang="en">
   <head>
-{head(title=f"Legal notice and licenses · {SITE_NAME}", description="Publisher, hosting, privacy and data licenses used by Within Tram Reach.", url=SITE_URL + "mentions-legales/", base="../", image=None, image_alt="", published="2026-10-05", graph=graph, author_name=PUBLISHER_NAME, author_url=PUBLISHER_URL)}
+{head(title=f"Legal notice and licenses · {SITE_NAME}", description=f"Publisher, hosting, privacy and data licenses used by {SITE_NAME}.", url=SITE_URL + "mentions-legales/", base="../", image=None, image_alt="", published="2026-10-05", graph=graph, author_name=PUBLISHER_NAME, author_url=PUBLISHER_URL)}
     <link rel="stylesheet" href="../styles.css?v={short_hash(SITE / 'styles.css')}" />
   </head>
   <body>
@@ -521,19 +554,18 @@ def render_legal(cities: list[dict]) -> str:
         by <a href="https://github.com/camilleroux/montpellier-temps-transport">Camille Roux</a>. The concept and the engineering are his work: the original idea
         comes from Anthony Castrio's <a href="https://castrio.me/nyc/">NYC Transit Time Cartogram</a>, later adapted to Paris
         by Jules Grandin, then extended by Camille Roux. This fork borrows that idea, keeps his build pipeline and map engine,
-        and adds a Toronto context — TTC schedules, translated to English and reduced to a single city.</p>
+        and adds local schedules for the Greater Toronto and Hamilton Area and Toronto, in English.</p>
         <h2>Hosting</h2>
         <p>GitHub, Inc. (GitHub Pages), 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, United States.</p>
         <h2>Personal data</h2>
         <p>No audience measurement, no cookies, no personal identifiers. Trips are
-        computed in your browser: no location or address is stored. Address search queries
+        computed in your browser: no location or address is stored on any server. Places you save stay in your own browser. Address search queries
         komoot's Photon API (photon.komoot.io, OpenStreetMap data).</p>
         <h2>Licenses</h2>
         <p>The code is published under the MIT license on <a href="{GITHUB_URL}">GitHub</a>. The computed data
-        (<code>data/*.json</code>) are derived databases, published under the <a href="{ODBL_URL}">ODbL</a> license.
+        (<code>data/*.json</code> and <code>data/*.bin</code>) are derived databases, published under the <a href="{ODBL_URL}">ODbL</a> license.
         Basemap and routes: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>
-        (ODbL); municipal boundary: OpenStreetMap administrative boundary (ODbL). Timetables: TTC GTFS,
-        <a href="https://open.toronto.ca/open-data-licence/">Open Government Licence – Toronto</a>.</p>
+        (ODbL); municipal boundary: OpenStreetMap administrative boundary (ODbL). Timetables: see the table below for the source and licence of each feed.</p>
         <table class="lines-table">
           <caption>Timetables used for each city</caption>
           <thead><tr><th scope="col">City</th><th scope="col">Source</th><th scope="col">License</th><th scope="col">Downloaded on</th></tr></thead>
@@ -570,7 +602,9 @@ def write_sources_readme(cities: list[dict]) -> None:
 
 
 def render_404(cities: list[dict]) -> str:
-    links = "\n".join(f'          <a class="chip" href="/{city["path"]}">{esc(city["name"])}</a>' for city in cities)
+    # Project Pages serves the site under /gtha-transit-travel-time/, not the domain root,
+    # so every link needs the project prefix (the 404 is served for any missing path).
+    links = "\n".join(f'          <a class="chip" href="{SITE_PATH}/{city["path"]}">{esc(city["name"])}</a>' for city in cities)
     return f"""<!doctype html>
 <html lang="en">
   <head>
@@ -578,12 +612,12 @@ def render_404(cities: list[dict]) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Page not found · {SITE_NAME}</title>
     <meta name="robots" content="noindex" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="{SITE_PATH}/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800" />
-    <link rel="stylesheet" href="/styles.css?v={short_hash(SITE / 'styles.css')}" />
+    <link rel="stylesheet" href="{SITE_PATH}/styles.css?v={short_hash(SITE / 'styles.css')}" />
   </head>
   <body>
-{header('/')}
+{header(SITE_PATH + '/')}
     <main class="page">
       <section class="hero">
         <h1>End of the line!</h1>
